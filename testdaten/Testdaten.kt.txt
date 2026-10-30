@@ -1,0 +1,357 @@
+import de.dachapp.schwimmleitung.logic.*
+import java.io.File
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
+import kotlin.random.Random
+import kotlin.test.Test
+import kotlin.test.assertTrue
+import de.dachapp.schwimmgruppen.logic.Bestand as GBestand
+import de.dachapp.schwimmgruppen.logic.BestandCodec as GCodec
+import de.dachapp.schwimmgruppen.logic.Einheit as GEinheit
+import de.dachapp.schwimmgruppen.logic.Erfolg as GErfolg
+import de.dachapp.schwimmgruppen.logic.ErfolgArt as GErfolgArt
+import de.dachapp.schwimmgruppen.logic.Interesse as GInteresse
+import de.dachapp.schwimmgruppen.logic.Mitglied as GMitglied
+import de.dachapp.schwimmgruppen.logic.Trainer as GTrainer
+import de.dachapp.schwimmgruppen.logic.TrainerRang as GRang
+import de.dachapp.schwimmgruppen.logic.Zeit as GZeit
+import de.dachapp.schwimmkurs.logic.Bestand as KBestand
+import de.dachapp.schwimmkurs.logic.BestandCodec as KCodec
+import de.dachapp.schwimmkurs.logic.Einstellungen as KEinstellungen
+import de.dachapp.schwimmkurs.logic.Kind as KKind
+import de.dachapp.schwimmkurs.logic.Kurs as KKurs
+import de.dachapp.schwimmkurs.logic.Terminserie
+
+/** Erzeugt drei Testsicherungen mit erfundenen Daten (fester Zufallsstartwert, also jedes Mal gleich). */
+class Testdaten {
+    private val r = Random(2026)
+    private val heute = LocalDate.of(2026, 10, 21)
+    private val jetzt = heute.atTime(9, 0).atZone(ZoneId.of("Europe/Berlin")).toInstant().toEpochMilli()
+
+    private val jungen = listOf("Ben", "Paul", "Leon", "Finn", "Elias", "Jonas", "Luis", "Noah", "Felix", "Maximilian", "Henry", "Emil", "Theo", "Anton", "Jakob", "Moritz", "Leo", "Valentin", "Matteo", "Lukas", "Simon", "Vincent", "Oskar", "Samuel", "Julian")
+    private val maedchen = listOf("Emma", "Mia", "Hannah", "Sophia", "Lina", "Ella", "Lea", "Marie", "Clara", "Leni", "Mila", "Emilia", "Anna", "Lena", "Paula", "Ida", "Frieda", "Luisa", "Greta", "Johanna", "Amelie", "Romy", "Nele", "Maja", "Theresa")
+    private val erwachsene = listOf("Sabine", "Thomas", "Andrea", "Michael", "Julia", "Stefan", "Katrin", "Markus", "Claudia", "Daniel", "Nicole", "Florian", "Sandra", "Christian", "Melanie", "Tobias")
+    private val nachnamen = listOf("Huber", "Wagner", "Steiner", "Brandl", "Kugler", "Ostermaier", "Lechner", "Wiedemann", "Reiter", "Zettl", "Gmeiner", "Kastl", "Sedlmayr", "Pfaffinger", "Rauscher", "Vogl", "Eberle", "Hummel", "Kerler", "Mayrhofer", "Stadler", "Thalhofer", "Wohlfahrt", "Ziegler", "Burkhart", "Dengler", "Fendt", "Glas", "Haslinger", "Kolb", "Linder", "Mösl", "Nagl", "Probst", "Reisinger", "Schuster", "Tremmel", "Unger", "Weigl", "Zinsmeister")
+    private val strassen = listOf("Hauptstraße", "Schulstraße", "Lindenweg", "Am Bach", "Kirchplatz", "Gartenstraße", "Bergstraße", "Birkenweg", "Ringstraße", "Mühlweg", "Feldstraße", "Am Sportplatz")
+    private val orte = listOf(
+        "Fischach" to "86850", "Willmatshofen" to "86850", "Aretsried" to "86850", "Reitenbuch" to "86850", "Langenneufnach" to "86863",
+        "Gessertshausen" to "86459", "Ustersbach" to "86514", "Mickhausen" to "86866", "Dinkelscherben" to "86424",
+        "Kutzenhausen" to "86500", "Mittelneufnach" to "86868", "Walkertshofen" to "86877", "Augsburg" to "86152", "Ziemetshausen" to "86473",
+    )
+
+    private fun <T> List<T>.zufall() = this[r.nextInt(size)]
+    private fun tel() = "0151 " + (1000000 + r.nextInt(8999999))
+    private fun mail(vor: String, nach: String) = "${vor.lowercase()}.${nach.lowercase()}".replace("ü", "ue").replace("ö", "oe").replace("ä", "ae") + "@example.com"
+    private fun tag(von: LocalDate, bis: LocalDate) = von.plusDays(r.nextLong(java.time.temporal.ChronoUnit.DAYS.between(von, bis) + 1))
+    private fun vorname(w: Boolean) = if (w) maedchen.zufall() else jungen.zufall()
+
+    @Test
+    fun erzeugen() {
+        val ziel = File(System.getProperty("ziel")).apply { mkdirs() }
+        val kurs = schwimmkurs()
+        val gruppen = schwimmgruppen()
+        val kursText = KCodec.encode(kurs)
+        val gruppenText = GCodec.encode(gruppen)
+        File(ziel, "test-schwimmkurs.json").writeText(kursText)
+        File(ziel, "test-schwimmgruppen.json").writeText(gruppenText)
+
+        // Gegenprobe: lassen sich die Dateien wieder lesen?
+        KCodec.decode(kursText); GCodec.decode(gruppenText)
+        val leitung = schwimmleitung(kursText, gruppenText)
+        val leitungText = LeitungCodec.encode(leitung)
+        assertTrue(LeitungCodec.decode(leitungText) != null)
+        File(ziel, "test-schwimmleitung.json").writeText(leitungText)
+        println(Berichte.text(Berichte.erstellen(leitung, Zeitraum.saison(LocalDate.of(2026, 7, 1)), heute)))
+    }
+
+    // ---------------- Schwimmkurs ----------------
+
+    private fun schwimmkurs(): KBestand {
+        val kinder = mutableListOf<KKind>()
+        for (i in 1..72) {
+            val w = r.nextBoolean()
+            val nach = nachnamen.zufall()
+            val (ort, plz) = when (r.nextInt(10)) { in 0..5 -> orte.take(9).zufall(); 6, 7 -> orte.subList(9, 12).zufall(); 8 -> orte.takeLast(2).zufall(); else -> "" to "" }
+            val geburt = tag(LocalDate.of(2018, 9, 1), LocalDate.of(2022, 3, 31))
+            kinder += KKind(
+                id = "kind-$i", vorname = vorname(w), nachname = nach, geburtsdatum = geburt,
+                eltern = erwachsene.zufall() + " " + nach, email = "", telefon = tel(),
+                strasse = if (ort.isBlank()) "" else "${strassen.zufall()} ${1 + r.nextInt(40)}", plz = plz, ort = ort,
+                anmeldedatum = tag(LocalDate.of(2024, 9, 1), LocalDate.of(2026, 10, 15)),
+                notiz = if (ort.isBlank() && r.nextBoolean()) "Kindergarten ${listOf("Fischach", "Willmatshofen", "Langenneufnach").zufall()}" else "",
+                einschulung = (geburt.year + 6 + if (geburt.monthValue >= 7) 1 else 0).toString(),
+                listenplatz = i,
+                pausiert = r.nextInt(25) == 0,
+            ).let { it.copy(email = mail(it.eltern.substringBefore(' '), nach)) }
+        }
+        kinder.sortBy { it.anmeldedatum }
+        val samstag11 = LocalTime.of(11, 0) to LocalTime.of(11, 45)
+        val starts = listOf(
+            LocalDate.of(2025, 9, 20), LocalDate.of(2025, 11, 22), LocalDate.of(2026, 1, 24), LocalDate.of(2026, 3, 21), LocalDate.of(2026, 5, 9),
+            LocalDate.of(2026, 9, 19), LocalDate.of(2026, 11, 21), LocalDate.of(2027, 1, 23),
+        )
+        val frei = kinder.filter { !it.pausiert }.toMutableList()
+        val kurse = starts.mapIndexed { i, start ->
+            val vergangen = start.isBefore(LocalDate.of(2026, 9, 1))
+            val saison = if (start.monthValue >= 9) start.year else start.year - 1
+            val nr = if (vergangen) i + 1 else i - 4
+            val kuerzel = "SK%02d %02d%02d".format(nr, saison % 100, (saison + 1) % 100)
+            val anzahl = when { start.isAfter(LocalDate.of(2027, 1, 1)) -> 4; else -> 7 + r.nextInt(2) }
+            val tn = frei.filter { (it.anmeldedatum ?: heute).isBefore(start.minusDays(14)) && it.geburtsdatum!!.plusYears(5).isBefore(start) }
+                .sortedBy { it.geburtsdatum }.take(anzahl)
+            frei.removeAll(tn.toSet())
+            KKurs(
+                id = "kurs-${i + 1}", name = "Seepferdchenkurs $kuerzel", kuerzel = kuerzel, plaetze = 8, ziel = "Seepferdchen", minAlter = 5,
+                ort = "Hallenbad Fischach", kursleitung = listOf("Sabine Kugler", "Thomas Reiter").zufall(),
+                termine = Terminserie.woechentlich(start, DayOfWeek.SATURDAY, 8, samstag11.first, samstag11.second),
+                teilnehmer = tn.map { it.id },
+            )
+        }
+        // Abgeschlossene Kurse: die meisten haben das Seepferdchen geschafft.
+        val geschafft = kurse.filter { it.termine.last().datum.isBefore(heute) }.flatMap { it.teilnehmer }.filter { r.nextInt(10) < 8 }.toSet()
+        val fertig = kinder.map { if (it.id in geschafft) it.copy(abzeichen = setOf("Seepferdchen")) else it }
+        return KBestand(
+            kinder = fertig, kurse = kurse,
+            einstellungen = KEinstellungen(iban = "DE00 1234 5678 9012 3456 78", kontoinhaber = "Testverein Schwimmen", absender = "Ihr Test-Team Schwimmen"),
+        )
+    }
+
+    // ---------------- Schwimmgruppen ----------------
+
+    private fun schwimmgruppen(): GBestand {
+        var b = GBestand()
+        val altersgruppe = mapOf(
+            "gruppe-1" to (6..7), "gruppe-1-6" to (6..7), "gruppe-2" to (8..9), "gruppe-2-3" to (8..9), "gruppe-2-6" to (8..9),
+            "gruppe-3" to (10..11), "gruppe-4" to (12..15), "kader" to (12..17),
+        )
+        val mitglieder = mutableListOf<GMitglied>()
+        var nr = 1000
+        for ((gid, alter) in altersgruppe) {
+            val anzahl = if (gid == "kader") 6 else 6 + r.nextInt(5)
+            repeat(anzahl) {
+                val w = r.nextBoolean()
+                val nach = nachnamen.zufall()
+                val a = alter.random(r)
+                val geburt = tag(heute.minusYears(a + 1L).plusDays(1), heute.minusYears(a.toLong()))
+                val (ort, plz) = orte.take(10).zufall()
+                val vor = vorname(w)
+                val gruppenSet = if (gid == "kader") setOf("kader", listOf("gruppe-3", "gruppe-4").zufall()) else setOf(gid)
+                mitglieder += GMitglied(
+                    id = "m-${nr}", vorname = vor, nachname = nach, geburtsdatum = geburt, geschlecht = if (w) "w" else "m",
+                    mitgliedsnummer = (nr++).toString(), email = mail(erwachsene.zufall(), nach), telefon = tel(),
+                    strasse = "${strassen.zufall()} ${1 + r.nextInt(40)}", plz = plz, ort = ort,
+                    eintritt = (geburt.year + 6 + r.nextInt(3)).coerceAtMost(2026).toString(),
+                    fotorechte = r.nextInt(8) != 0, gesundheitserklaerung = r.nextInt(10) != 0,
+                    gruppen = gruppenSet,
+                    interesse = when { gid == "kader" -> GInteresse.JA; a >= 9 -> GInteresse.entries.zufallE(); else -> GInteresse.OFFEN },
+                )
+            }
+        }
+        // Ein paar noch ohne Gruppe und zwei Ausgetretene
+        repeat(4) { val w = r.nextBoolean(); val nach = nachnamen.zufall(); mitglieder += GMitglied("m-${nr}", vorname(w), nach, tag(LocalDate.of(2017, 1, 1), LocalDate.of(2019, 12, 31)), if (w) "w" else "m", (nr++).toString(), eintritt = "2026") }
+        repeat(2) { i -> mitglieder[i * 7] = mitglieder[i * 7].copy(aktiv = false, gruppen = emptySet()) }
+
+        // Erfolge und Zeiten
+        val abz = listOf("Seepferdchen", "Bronze", "Silber", "Gold")
+        val mitErfolgen = mitglieder.map { m ->
+            val a = m.alterAm(heute) ?: 8
+            val stufe = when { a <= 7 -> 1; a <= 9 -> 2; a <= 11 -> 3; else -> 4 }.coerceAtMost(abz.size) - if (r.nextInt(4) == 0) 1 else 0
+            val erfolge = abz.take(stufe.coerceAtLeast(1)).mapIndexed { i, t -> GErfolg("e-${m.id}-$i", t, GErfolgArt.ABZEICHEN, null) }.toMutableList()
+            val zeiten = mutableListOf<GZeit>()
+            if ("kader" in m.gruppen || "gruppe-4" in m.gruppen) {
+                for (strecke in listOf("50 m Freistil", "50 m Brust", "100 m Freistil").shuffled(r).take(2)) {
+                    var basis = (when (strecke) { "100 m Freistil" -> 9000; "50 m Brust" -> 5200; else -> 4200 } - a * 150 + r.nextInt(600))
+                    var d = LocalDate.of(2025, 10, 1)
+                    repeat(3 + r.nextInt(3)) { i ->
+                        zeiten += GZeit("z-${m.id}-$strecke-$i", strecke, basis, d, wettkampf = i % 2 == 1, anlass = if (i % 2 == 1) listOf("Bezirksmeisterschaft", "Vereinsvergleich Bobingen", "Kreismeisterschaft").zufall() else "")
+                        basis -= r.nextInt(-40, 160); d = d.plusDays(40L + r.nextInt(60))
+                    }
+                }
+                if (r.nextBoolean()) erfolge += GErfolg("w-${m.id}", "${1 + r.nextInt(3)}. Platz 50 m ${listOf("Freistil", "Brust", "Rücken").zufall()}, Bezirksmeisterschaft", GErfolgArt.WETTKAMPF, LocalDate.of(2026, 3, 14))
+            }
+            m.copy(erfolge = erfolge, zeiten = zeiten)
+        }
+        mitErfolgen.forEach { b = b.mitgliedSetzen(it) }
+
+        // Trainer: drei Erwachsene ohne Mitgliedschaft, zwei Jungtrainer aus dem Kader, ein Helfer
+        val kader = mitErfolgen.filter { "kader" in it.gruppen && it.aktiv }.sortedBy { it.geburtsdatum }
+        val trainer = listOf(
+            GTrainer("t-1", null, "Sabine Kugler", LocalDate.of(1979, 4, 12), GRang.TRAINER, "Trainer C Schwimmen", tel()),
+            GTrainer("t-2", null, "Thomas Reiter", LocalDate.of(1985, 8, 3), GRang.TRAINER, "Trainer C Schwimmen", tel()),
+            GTrainer("t-3", null, "Katrin Lechner", LocalDate.of(1992, 1, 27), GRang.TRAINER, "Rettungsschwimmer Silber", tel()),
+            GTrainer("t-4", kader[0].id, rang = GRang.JUNGTRAINER, schein = "Rettungsschwimmer Bronze"),
+            GTrainer("t-5", kader[1].id, rang = GRang.JUNGTRAINER),
+            GTrainer("t-6", null, "Markus Vogl", LocalDate.of(1970, 11, 2), GRang.HELFER, "", tel()),
+        )
+        trainer.forEach { b = b.trainerSetzen(it) }
+        val stamm = mapOf(
+            "gruppe-1" to listOf("t-3", "t-5"), "gruppe-1-6" to listOf("t-1", "t-4"), "gruppe-2" to listOf("t-2"), "gruppe-2-3" to listOf("t-3"),
+            "gruppe-2-6" to listOf("t-1", "t-5"), "gruppe-3" to listOf("t-2", "t-4"), "gruppe-4" to listOf("t-2"), "kader" to listOf("t-1", "t-2"),
+            "wassergymnastik" to listOf("t-6"), "erwachsene" to listOf("t-3"),
+        )
+        b = b.copy(gruppen = b.gruppen.map { g -> g.copy(trainerIds = stamm[g.id].orEmpty(), plaetze = if (g.art.name == "EXTERN") 15 else 12) })
+
+        // Trainings von Saisonbeginn 2025 bis gestern, ohne Ferien
+        val ferien = listOf(
+            LocalDate.of(2025, 10, 27) to LocalDate.of(2025, 11, 7), LocalDate.of(2025, 12, 22) to LocalDate.of(2026, 1, 5),
+            LocalDate.of(2026, 2, 16) to LocalDate.of(2026, 2, 20), LocalDate.of(2026, 3, 30) to LocalDate.of(2026, 4, 10),
+            LocalDate.of(2026, 5, 26) to LocalDate.of(2026, 6, 5), LocalDate.of(2026, 8, 1) to LocalDate.of(2026, 9, 14),
+        )
+        var d = LocalDate.of(2025, 9, 15)
+        val einheiten = mutableListOf<GEinheit>()
+        while (d.isBefore(heute)) {
+            if (ferien.none { (von, bis) -> !d.isBefore(von) && !d.isAfter(bis) }) {
+                for (g in b.gruppen) for (z in g.zeiten) {
+                    if (z.wochentag != d.dayOfWeek.value) continue
+                    if (r.nextInt(12) == 0) continue // nicht erfasst
+                    val ausgefallen = r.nextInt(30) == 0
+                    val leute = b.mitgliederIn(g.id).filter { r.nextInt(10) < 7 }.map { it.id }.toSet()
+                    val vertretung = if (!ausgefallen && r.nextInt(10) == 0) g.trainerIds.firstOrNull()?.let { mapOf(it to listOf("t-1", "t-2", "t-3", "t-6").filter { t -> t != it }.zufall()) } else null
+                    einheiten += GEinheit(
+                        gruppeId = g.id, datum = d, beginn = z.beginn, ende = z.ende,
+                        anwesend = if (ausgefallen || g.nurZaehlen) emptySet() else leute,
+                        weitere = when { ausgefallen -> 0; g.nurZaehlen -> 6 + r.nextInt(9); r.nextInt(8) == 0 -> 1; else -> 0 },
+                        ausgefallen = ausgefallen,
+                        vermerk = when { ausgefallen -> listOf("Bad gesperrt (Technik)", "Trainer krank", "Hallenreinigung").zufall(); r.nextInt(25) == 0 -> listOf("Bahn 3 gesperrt", "Abzeichenprüfung", "Probeschwimmer da", "Staffeltraining").zufall(); else -> "" },
+                        vertretungen = vertretung.orEmpty(),
+                    )
+                }
+            }
+            d = d.plusDays(1)
+        }
+        return b.copy(einheiten = einheiten)
+    }
+
+    private fun <E : Enum<E>> List<E>.zufallE(): E = zufall()
+
+    // ---------------- Schwimmleitung ----------------
+
+    private fun schwimmleitung(kursText: String, gruppenText: String): LeitungDaten {
+        var d = LeitungDaten().setzen(Pin.setzen(Einstellungen(), "1234"), jetzt)
+        val k = (Import.lesen(kursText, jetzt) as Import.Ergebnis.Kurs).auszug
+        val g = (Import.lesen(gruppenText, jetzt) as Import.Ergebnis.Gruppen).auszug
+        d = d.setzen(k, jetzt).setzen(g, jetzt)
+        var n = 0
+        d = d.trainerUebernehmen(g, jetzt) { "p-${++n}" }.first
+        d = d.setzen(Person("p-leitung", "Florian Wiedemann", "Abteilungsleitung", tel()), jetzt)
+            .setzen(Person("p-stv", "Andrea Kastl", "Stellv. Abteilungsleitung", tel()), jetzt)
+            .setzen(Person("p-kasse", "Daniel Probst", "Kassenwart", tel()), jetzt)
+
+        // Nachweise
+        var ni = 0
+        fun nw(p: String, art: NachweisArt, bez: String, aus: LocalDate) {
+            d = d.setzen(Nachweis("n-${++ni}", p, art, bez, aus, art.gueltigJahre?.let { aus.plusYears(it.toLong()) }), jetzt)
+        }
+        val personen = d.aktivePersonen
+        for (p in personen) {
+            when (p.rolle) {
+                "Trainer" -> {
+                    nw(p.id, NachweisArt.UEBUNGSLEITER, "Trainer C Schwimmen", tag(LocalDate.of(2022, 1, 1), LocalDate.of(2025, 6, 1)))
+                    nw(p.id, NachweisArt.RETTUNGSSCHWIMMER, "Silber", tag(LocalDate.of(2024, 6, 1), LocalDate.of(2025, 2, 1)))
+                    nw(p.id, NachweisArt.ERSTE_HILFE, "Erste-Hilfe-Kurs", tag(LocalDate.of(2024, 3, 1), LocalDate.of(2026, 1, 1)))
+                    nw(p.id, NachweisArt.FUEHRUNGSZEUGNIS, "erweitert", tag(LocalDate.of(2021, 9, 1), LocalDate.of(2024, 1, 1)))
+                }
+                "Jungtrainer" -> {
+                    nw(p.id, NachweisArt.RETTUNGSSCHWIMMER, "Bronze", tag(LocalDate.of(2025, 3, 1), LocalDate.of(2026, 5, 1)))
+                    nw(p.id, NachweisArt.ERSTE_HILFE, "Erste-Hilfe-Kurs", tag(LocalDate.of(2025, 1, 1), LocalDate.of(2026, 5, 1)))
+                }
+                "Helfer" -> nw(p.id, NachweisArt.FUEHRUNGSZEUGNIS, "erweitert", LocalDate.of(2021, 11, 15))
+                "Abteilungsleitung" -> { nw(p.id, NachweisArt.KAMPFRICHTER, "Schiedsrichter", LocalDate.of(2019, 5, 4)); nw(p.id, NachweisArt.ERSTE_HILFE, "Erste-Hilfe-Kurs", LocalDate.of(2024, 11, 30)) }
+            }
+        }
+
+        // Material
+        val material = listOf(
+            Material("mat-leinen", "Bahnleinen", "Geräteraum", 4),
+            Material("mat-bretter", "Schwimmbretter", "Gitterbox Beckenrand", 30),
+            Material("mat-pull", "Pull-Buoys", "Gitterbox Beckenrand", 18),
+            Material("mat-nudeln", "Schwimmnudeln", "Geräteraum", 25),
+            Material("mat-ringe", "Tauchringe", "Kiste Geräteraum", 12),
+            Material("mat-flossen", "Flossen (Kindergrößen)", "Schrank Trainer", 14),
+            Material("mat-stange", "Rettungsstange", "Wand Beckenrand", 1, pruefen = LocalDate.of(2026, 11, 15)),
+            Material("mat-eh", "Erste-Hilfe-Kasten", "Schrank Trainer", 1, pruefen = LocalDate.of(2026, 10, 31), notiz = "Pflaster fast leer"),
+            Material("mat-uhr", "Stoppuhren", "Schrank Trainer", 3),
+            Material("mat-wanduhr", "Pace-Uhr", "Wand Stirnseite", 1),
+            Material("mat-matte", "Schwimmmatte groß", "Geräteraum", 2, Zustand.AUSGESONDERT, notiz = "Weichmacher ausgetreten, entsorgt"),
+            Material("mat-lsp", "Bluetooth-Lautsprecher", "Schrank Trainer", 1, pruefen = null),
+        )
+        material.forEach { d = d.setzen(it, jetzt) }
+
+        // Meldungen aus der Halle
+        fun ms(tag: LocalDate, h: Int) = tag.atTime(h, 20).atZone(ZoneId.of("Europe/Berlin")).toInstant().toEpochMilli()
+        d = d.melden(Meldung("mel-1", MeldungArt.DEFEKT, "Bahnleine 2 gerissen, ein Schwimmer fehlt", "mat-leinen", "Katrin Lechner", ms(LocalDate.of(2026, 10, 14), 17)), heute, jetzt, "a-mel-1")
+        d = d.melden(Meldung("mel-2", MeldungArt.DEFEKT, "Zwei Stoppuhren zeigen nichts mehr an, Batterie?", "mat-uhr", "Thomas Reiter", ms(LocalDate.of(2026, 9, 25), 18)), heute, jetzt, "a-mel-2")
+        d = d.aufgabeErledigt("a-mel-2", LocalDate.of(2026, 10, 2), jetzt)
+        d = d.melden(Meldung("mel-3", MeldungArt.VORKOMMNIS, "Kind (Gruppe I) am Beckenrand ausgerutscht, Knie aufgeschürft, mit Pflaster versorgt, Eltern informiert.", von = "Sabine Kugler", zeit = ms(LocalDate.of(2026, 10, 17), 12)), heute, jetzt, "a-mel-3")
+        d = d.melden(Meldung("mel-4", MeldungArt.VORKOMMNIS, "Bahn 1 wegen Aquafitness der Stadt bis 17:30 belegt, Gruppe I auf 2 Bahnen.", von = "Katrin Lechner", zeit = ms(LocalDate.of(2026, 10, 7), 16), erledigt = true), heute, jetzt, "a-mel-4")
+        d = d.melden(Meldung("mel-5", MeldungArt.DEFEKT, "Drei Schwimmbretter durchgebrochen", "mat-bretter", "Jungtrainer", ms(LocalDate.of(2026, 10, 20), 17)), heute, jetzt, "a-mel-5")
+
+        // Belege
+        val belege = listOf(
+            Beleg("b-1", LocalDate.of(2026, 9, 19), 1850, false, "Pflaster und Kühlpacks (Apotheke)", "Sabine Kugler"),
+            Beleg("b-2", LocalDate.of(2026, 9, 26), 4200, true, "Eintritt Probeschwimmer bar kassiert (6 × 7,00 €)", "Thomas Reiter"),
+            Beleg("b-3", LocalDate.of(2026, 10, 3), 2399, false, "Batterien Stoppuhren", "Thomas Reiter"),
+            Beleg("b-4", LocalDate.of(2026, 10, 10), 6500, true, "Spendenkasse Abzeichenprüfung", "Katrin Lechner"),
+            Beleg("b-5", LocalDate.of(2026, 10, 17), 1290, false, "Getränke Kader nach Wettkampf", "Sabine Kugler"),
+            Beleg("b-6", LocalDate.of(2026, 10, 18), 3000, true, "Nachzahlung Kursgebühr bar (SK01)", "Sabine Kugler"),
+        )
+        belege.forEach { d = d.setzen(it, jetzt) }
+        d = d.uebergeben(listOf("b-1", "b-2", "b-3"), LocalDate.of(2026, 10, 6), jetzt)
+
+        // Ablage (Platzhalter-Links)
+        listOf(
+            Dokument("dok-1", "Hallenordnung Hallenbad", Ablage.WICHTIG, "https://example.com/hallenordnung.pdf"),
+            Dokument("dok-2", "Notfallplan und Alarmkette", Ablage.WICHTIG, "https://example.com/notfallplan.pdf", "Ausgedruckt im Schrank Trainer"),
+            Dokument("dok-3", "Hallennutzungsvertrag Gemeinde", Ablage.WICHTIG, "https://example.com/vertrag.pdf", gueltigBis = LocalDate.of(2026, 12, 31)),
+            Dokument("dok-4", "Trainingsplan Gruppe III/IV Herbst", Ablage.TRAINING, "https://example.com/trainingsplan.pdf"),
+            Dokument("dok-5", "Technikübungen Brust (Video-Sammlung)", Ablage.TRAINING, "https://example.com/brust"),
+            Dokument("dok-6", "Abzeichen-Prüfungsbedingungen", Ablage.TRAINING, "https://example.com/abzeichen.pdf"),
+        ).forEach { d = d.setzen(it, jetzt) }
+
+        // Sitzungen
+        val leitung = d.aktivePersonen.filter { it.rolle in setOf("Abteilungsleitung", "Stellv. Abteilungsleitung", "Kassenwart") }.map { it.id }
+        val trainerIds = d.aktivePersonen.filter { it.rolle in setOf("Trainer", "Jungtrainer", "Helfer") }.map { it.id }
+        val s1 = Sitzung(
+            "s-1", SitzungArt.TRAINER, LocalDate.of(2026, 7, 15), LocalTime.of(19, 30), "Vereinsheim",
+            anwesend = trainerIds.dropLast(1) + leitung.take(1), entschuldigt = trainerIds.takeLast(1),
+            leitungsbericht = "Rückblick auf die Saison: Kurse voll, Warteliste wächst. Neue Bahnzeiten ab September bestätigt.",
+            offeneRunde = "Wunsch nach neuen Pull-Buoys. Sommerfest am 25.07. mit Spielstation im Lehrschwimmbecken.",
+            protokollant = "Andrea Kastl",
+        )
+        val s2 = Sitzung(
+            "s-2", SitzungArt.LEITUNG, LocalDate.of(2026, 9, 9), LocalTime.of(20, 0), "bei Florian",
+            anwesend = leitung,
+            leitungsbericht = "Planung der Seepferdchenkurse 2026/27, Budget Material.",
+            offeneRunde = "Kassenprüfung im Januar. Neue Jungtrainer ansprechen.",
+            protokollant = "Daniel Probst",
+        )
+        d = d.setzen(s1, jetzt).setzen(s2, jetzt)
+        val s3datum = LocalDate.of(2026, 10, 14)
+        val s3 = Sitzung(
+            "s-3", SitzungArt.TRAINER, s3datum, LocalTime.of(19, 30), "Vereinsheim",
+            anwesend = trainerIds + leitung.take(2), gaeste = "Elternvertreterin Gruppe II",
+            leitungsbericht = "Start der neuen Saison gut gelaufen. Erste-Hilfe-Auffrischung für alle Trainer bis Jahresende.",
+            kennzahlen = Berichte.text(Berichte.erstellen(d, Zeitraum.seit(s2.datum, s3datum), s3datum)),
+            offeneRunde = "Bahnleine reparieren lassen. Weihnachtsschwimmen am 19.12. planen.",
+            protokollant = "Andrea Kastl",
+        )
+        d = d.setzen(s3, jetzt)
+
+        // Aufgaben
+        val pid = { name: String -> d.aktivePersonen.firstOrNull { it.name == name }?.id }
+        listOf(
+            Aufgabe("a-1", "Neue Pull-Buoys bestellen (15 Stück)", personId = pid("Thomas Reiter"), faellig = LocalDate.of(2026, 9, 30), status = AufgabeStatus.ERLEDIGT, erstellt = s1.datum, erledigtAm = LocalDate.of(2026, 9, 28), sitzungId = "s-1"),
+            Aufgabe("a-2", "Sommerfest Spielstation organisieren", personId = pid("Katrin Lechner"), faellig = LocalDate.of(2026, 7, 24), status = AufgabeStatus.ERLEDIGT, erstellt = s1.datum, erledigtAm = LocalDate.of(2026, 7, 25), sitzungId = "s-1"),
+            Aufgabe("a-3", "Kurstermine 2026/27 an Gemeinde melden", personId = "p-leitung", faellig = LocalDate.of(2026, 9, 20), status = AufgabeStatus.ERLEDIGT, erstellt = s2.datum, erledigtAm = LocalDate.of(2026, 9, 18), sitzungId = "s-2"),
+            Aufgabe("a-4", "Kassenprüfer anfragen", personId = "p-kasse", faellig = LocalDate.of(2026, 11, 30), erstellt = s2.datum, sitzungId = "s-2"),
+            Aufgabe("a-5", "Jungtrainer-Kandidaten ansprechen", personId = "p-stv", faellig = LocalDate.of(2026, 10, 15), status = AufgabeStatus.LAEUFT, erstellt = s2.datum, sitzungId = "s-2"),
+            Aufgabe("a-6", "Erste-Hilfe-Auffrischung organisieren", personId = "p-stv", faellig = LocalDate.of(2026, 12, 15), erstellt = s3datum, sitzungId = "s-3"),
+            Aufgabe("a-7", "Weihnachtsschwimmen 19.12. planen", personId = pid("Sabine Kugler"), faellig = LocalDate.of(2026, 12, 1), erstellt = s3datum, sitzungId = "s-3"),
+            Aufgabe("a-8", "Erste-Hilfe-Kasten auffüllen", personId = pid("Markus Vogl"), faellig = LocalDate.of(2026, 10, 31), erstellt = LocalDate.of(2026, 10, 18)),
+            Aufgabe("a-9", "Elternbrief Hallenregeln", verantwortlich = "Elternbeirat", faellig = LocalDate.of(2026, 11, 10), erstellt = LocalDate.of(2026, 10, 19)),
+        ).forEach { d = d.setzen(it, jetzt) }
+        return Abgleich.ordnen(d)
+    }
+}

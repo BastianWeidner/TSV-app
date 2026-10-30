@@ -1,0 +1,5 @@
+Zeitstempel;Vorname des Kindes;Name;Geburtsdatum;Name Erziehungsberechtigte/r;E-Mail-Adresse;Telefon;Straße;PLZ / Ort;Abzeichen
+02.09.2026 18:04:11;Anna;Müller;03.04.2020;Sabine Müller;sabine.mueller@example.de;0151 1234567;Hauptstraße 5;12345 Musterstadt;
+02.09.2026 18:06:40;Ben;Müller;14.08.2018;Sabine Müller;sabine.mueller@example.de;0151 1234567;Hauptstraße 5;12345 Musterstadt;Seepferdchen
+05.09.2026 09:12:03;Clara;Schulz;21.11.2019;Tom Schulz;tom.schulz@example.de;;Bahnhofweg 2;12346 Nachbarort;
+07.09.2026 20:30:55;David;Yilmaz;30.01.2017;Ayse Yilmaz;ayse@example.de;0170 9876543;Am Bach 7;12345 Musterstadt;Seepferdchen, Freischwimmer

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Keine Internet-Berechtigung: Mails gehen über Gmail/Outlook, Dateien über den Android-Dateidialog. -->
+    <application>
+        <!-- Gibt erzeugte PDFs und Kurslisten gezielt an die gewählte Mail-App frei. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.schwimmkurs.dateien"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/schwimmkurs_dateien" />
+        </provider>
+    </application>
+</manifest>

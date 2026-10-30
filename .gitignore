@@ -1,0 +1,11 @@
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+.kotlin/
+# Signatur bleibt außerhalb des Repos
+keystore.properties
+signing/
+*.jks
+*.keystore

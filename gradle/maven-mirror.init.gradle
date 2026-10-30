@@ -1,0 +1,10 @@
+def fix = { repos ->
+  repos.withType(MavenArtifactRepository).configureEach { r ->
+    if (r.url.toString().contains("repo.maven.apache.org")) r.url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
+  }
+}
+beforeSettings { s ->
+  fix(s.pluginManagement.repositories)
+  fix(s.dependencyResolutionManagement.repositories)
+  s.gradle.settingsEvaluated { st -> fix(st.pluginManagement.repositories); fix(st.dependencyResolutionManagement.repositories) }
+}
