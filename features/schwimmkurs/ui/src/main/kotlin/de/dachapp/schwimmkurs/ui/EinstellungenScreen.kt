@@ -24,6 +24,7 @@ import de.dachapp.module.FormPage
 import de.dachapp.schwimmkurs.logic.Einladungen
 import de.dachapp.schwimmkurs.logic.Einstellungen
 import de.dachapp.schwimmkurs.logic.Vorlagen
+import de.dachapp.schwimmkurs.logic.Website
 
 /** Alle Felder speichern sofort beim Tippen. */
 @Composable
@@ -32,6 +33,7 @@ fun EinstellungenTab(state: UiState, vm: SchwimmkursViewModel) {
     fun setzen(neu: Einstellungen) = vm.einstellungen(neu)
     val sichern = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> uri?.let(vm::sicherungSchreiben) }
     val laden = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::sicherungLesen) }
+    val website = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri -> uri?.let(vm::websiteSchreiben) }
     var ladenFragen by remember { mutableStateOf(false) }
     var loeschenFragen by remember { mutableStateOf(false) }
 
@@ -117,6 +119,14 @@ fun EinstellungenTab(state: UiState, vm: SchwimmkursViewModel) {
             Einladungen.PLATZHALTER.forEach { (name, erkl) ->
                 Text("{$name}" + if (erkl.isNotEmpty()) " – $erkl" else "", style = MaterialTheme.typography.bodySmall)
             }
+        }
+        Abschnitt("Für die Website") {
+            Text(
+                "Speichert die laufenden und kommenden Kurse mit freien Plätzen als ${Website.DATEINAME}, ohne Kinder oder " +
+                    "Eltern. Die Datei im Website-Repo unter variante-2/src/data/ hochladen; sie ersetzt dort das Google Sheet.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            OutlinedButton(onClick = { website.launch(Website.DATEINAME) }, modifier = Modifier.fillMaxWidth()) { Text("Kursliste speichern") }
         }
         Abschnitt("Sicherung") {
             Text(

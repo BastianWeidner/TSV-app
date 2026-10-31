@@ -4,7 +4,7 @@ Android-App der Schwimmabteilung mit drei Teilen: **Schwimmkurs**, **Schwimmgrup
 Sie läuft komplett offline (keine Internet-Berechtigung, keine weiteren Berechtigungen) und speichert alles nur auf dem Gerät.
 
 - App-ID `de.dachapp.schwimmen`, Name „Schwimmen“
-- Aktuelle Version: **1.15.0** (versionCode 36)
+- Aktuelle Version: **1.16.0** (versionCode 37)
 - Fertige APKs: Ordner [`apk/`](apk/), neueste Datei installieren (Updates lassen sich direkt über die alte Version installieren)
 
 ## Aufbau
@@ -20,6 +20,12 @@ Sie läuft komplett offline (keine Internet-Berechtigung, keine weiteren Berecht
 | `testdaten/` | Beispieldaten zum Ausprobieren |
 
 Jede Unter-App hat `logic/` (reines Kotlin mit Tests) und `ui/` (Jetpack Compose).
+
+## Website
+
+Schwimmgruppen (Mehr › „Für die Website“) und Schwimmkurs (Einstellungen › „Für die Website“) speichern die
+Trainingszeiten (`zeiten-app.json`) und die Kursliste (`kurse-app.csv`) ohne Personendaten. Die Dateien gehören ins
+Website-Repo [TSV-relaunch](https://github.com/BastianWeidner/TSV-relaunch) unter `variante-2/src/data/`.
 
 ## Bauen
 

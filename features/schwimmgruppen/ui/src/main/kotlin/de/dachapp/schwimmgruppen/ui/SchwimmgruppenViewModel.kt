@@ -42,6 +42,7 @@ import de.dachapp.schwimmgruppen.logic.TabellenLeser
 import de.dachapp.schwimmgruppen.logic.Stoppuhr
 import de.dachapp.schwimmgruppen.logic.Zeit
 import de.dachapp.schwimmgruppen.logic.Zuordnung
+import de.dachapp.schwimmgruppen.logic.Website
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -543,6 +544,10 @@ class SchwimmgruppenViewModel(app: Application) : AndroidViewModel(app) {
         }
         showMessage(meldung)
     }
+
+    /** Trainingszeiten für die Vereinswebsite, ohne Personendaten. */
+    fun websiteSchreiben(uri: Uri) =
+        schreiben(uri, Website.zeitenJson(bestand, LocalDate.now()), "Trainingszeiten für die Website gespeichert. Jetzt im Website-Repo unter variante-2/src/data/ hochladen.")
 
     fun sicherungLesen(uri: Uri) = imHintergrund {
         val neu = try {

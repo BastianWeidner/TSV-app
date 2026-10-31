@@ -25,6 +25,7 @@ import de.dachapp.module.ConfirmDialog
 import de.dachapp.module.Eingabe
 import de.dachapp.module.FormPage
 import de.dachapp.schwimmgruppen.logic.Vorgaben
+import de.dachapp.schwimmgruppen.logic.Website
 
 /** Einstellungen, Sicherung (z. B. nach Google Drive) und Löschen. */
 @Composable
@@ -36,6 +37,7 @@ fun MehrTab(state: UiState, vm: SchwimmgruppenViewModel) {
     val laden = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::sicherungLesen) }
     val anlegen = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> uri?.let(vm::dateiGewaehlt) }
     val waehlen = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::dateiGewaehlt) }
+    val website = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> uri?.let(vm::websiteSchreiben) }
     var trennenFragen by remember { mutableStateOf(false) }
     var ladenFragen by remember { mutableStateOf(false) }
     var loeschenFragen by remember { mutableStateOf(false) }
@@ -110,6 +112,14 @@ fun MehrTab(state: UiState, vm: SchwimmgruppenViewModel) {
                     OutlinedButton(onClick = { trennenFragen = true }, modifier = Modifier.weight(1f)) { Text("Trennen") }
                 }
             }
+        }
+        Abschnitt("Für die Website") {
+            Text(
+                "Speichert die Trainingszeiten aller Gruppen als ${Website.DATEINAME}, ohne Namen. Die Datei im " +
+                    "Website-Repo unter variante-2/src/data/ hochladen; beim nächsten Bau stehen die Zeiten auf der Seite.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            OutlinedButton(onClick = { website.launch(Website.DATEINAME) }, modifier = Modifier.fillMaxWidth()) { Text("Trainingszeiten speichern") }
         }
         Abschnitt("Sicherung") {
             Text(

@@ -25,6 +25,7 @@ import de.dachapp.schwimmkurs.logic.TabellenLeser
 import de.dachapp.schwimmkurs.logic.Vorschlag
 import de.dachapp.schwimmkurs.logic.Zahlung
 import de.dachapp.schwimmkurs.logic.Zuordnung
+import de.dachapp.schwimmkurs.logic.Website
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -279,6 +280,15 @@ class SchwimmkursViewModel(app: Application) : AndroidViewModel(app) {
             resolver.openOutputStream(uri, "wt")?.use { it.write(text.encodeToByteArray()) } ?: error("Datei lässt sich nicht schreiben.")
         }
         showMessage("Sicherung gespeichert: ${bestand.kinder.size} Kinder, ${bestand.kurse.size} Kurse.")
+    }
+
+    /** Kursliste für die Vereinswebsite, ohne Kinder oder Eltern. */
+    fun websiteSchreiben(uri: Uri) = imHintergrund {
+        val text = Website.kurseCsv(bestand, LocalDate.now())
+        withContext(Dispatchers.IO) {
+            resolver.openOutputStream(uri, "wt")?.use { it.write(text.encodeToByteArray()) } ?: error("Datei lässt sich nicht schreiben.")
+        }
+        showMessage("Kursliste für die Website gespeichert. Jetzt im Website-Repo unter variante-2/src/data/ hochladen.")
     }
 
     fun sicherungLesen(uri: Uri) = imHintergrund {
