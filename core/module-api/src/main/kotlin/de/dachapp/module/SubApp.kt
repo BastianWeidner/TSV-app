@@ -1,5 +1,6 @@
 package de.dachapp.module
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 
 /**
@@ -22,4 +23,10 @@ interface SubApp {
      */
     @Composable
     fun Content(onExit: () -> Unit)
+
+    /**
+     * Ein kurzer Hinweis für die Heute-Zeile der Übersicht und Widgets, z. B. "Training 17:15" oder "3 offen";
+     * null, wenn heute nichts ansteht. Läuft im Hintergrund und liest nur, darf also keine Oberfläche anfassen.
+     */
+    fun heute(context: Context): String? = null
 }

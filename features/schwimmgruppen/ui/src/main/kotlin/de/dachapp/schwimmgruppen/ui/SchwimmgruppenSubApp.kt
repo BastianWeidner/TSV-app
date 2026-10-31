@@ -1,5 +1,7 @@
 package de.dachapp.schwimmgruppen.ui
 
+import android.content.Context
+import de.dachapp.schwimmgruppen.logic.Kalender
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -17,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.dachapp.module.MessageDialog
@@ -32,6 +35,12 @@ object SchwimmgruppenSubApp : SubApp {
     override fun Content(onExit: () -> Unit) {
         val vm: SchwimmgruppenViewModel = viewModel()
         val state by vm.state.collectAsStateWithLifecycle()
+
+        // Abgleich mit den anderen Trainern nur, solange Schwimmgruppen im Vordergrund offen ist.
+        LifecycleStartEffect(vm) {
+            vm.sichtbar(true)
+            onStopOrDispose { vm.sichtbar(false) }
+        }
 
         // Ohne offenen Bildschirm: auf einem anderen Tab zuerst zu "Schwimmer", danach schließt die Dach-App.
         BackHandler(enabled = state.stapel.isNotEmpty() || state.tab != Tab.SCHWIMMER) {
@@ -85,6 +94,15 @@ object SchwimmgruppenSubApp : SubApp {
         }
         MessageDialog(state.message, vm::dismissMessage)
         if (state.message == null && state.nichtInListe.isNotEmpty()) FehlendeDialog(state, vm)
+    }
+
+    override fun heute(context: Context): String? {
+        val b = SchwimmgruppenStore(context).run { load().also { close() } } ?: return null
+        val jetzt = java.time.LocalDateTime.now()
+        val uhr = jetzt.toLocalTime()
+        val e = Kalender.tag(b, jetzt.toLocalDate()).firstOrNull { !it.ausgefallen && uhr.isBefore(it.ende) } ?: return null
+        val g = b.gruppe(e.gruppeId)?.name.orEmpty()
+        return if (uhr.isBefore(e.beginn)) "Training ${e.beginn} $g".trim() else "Training läuft bis ${e.ende}"
     }
 }
 

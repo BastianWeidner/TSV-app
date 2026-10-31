@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="dach_widget_grund">#F2FFFFFF</color>
+    <color name="dach_widget_text">#FF1C1B1F</color>
+    <color name="dach_widget_text2">#FF5F5B66</color>
+</resources>

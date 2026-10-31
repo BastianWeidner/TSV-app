@@ -14,6 +14,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,9 +36,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,6 +50,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,6 +75,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import de.dachapp.module.SubApp
 import java.time.LocalTime
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+
+/** Pseudo-ID der Sicherungsseite (keine Unter-App heißt so). */
+private const val SICHERUNG = "__sicherung"
 
 /** Kurzer Name klein unter jeder Kachel; Beschreibung und Langtext gibt es nur über das „i“. */
 private const val NAME_UNTER_KACHEL = true
@@ -80,8 +90,10 @@ private const val NAME_UNTER_KACHEL = true
  * die Farbe ihres Icons als eigenes Farbschema.
  */
 @Composable
-fun DachApp(modules: List<SubApp>) {
+fun DachApp(modules: List<SubApp>, start: String? = null, startNr: Int = 0) {
     var openId by rememberSaveable { mutableStateOf<String?>(null) }
+    // Aus einer Benachrichtigung oder einem Widget geöffnet: gleich die passende Unter-App zeigen.
+    LaunchedEffect(start, startNr) { if (start != null && modules.any { it.id == start }) openId = start }
 
     AnimatedContent(
         targetState = openId,
@@ -95,7 +107,13 @@ fun DachApp(modules: List<SubApp>) {
         label = "Unter-App",
     ) { id ->
         val open = modules.firstOrNull { it.id == id }
-        if (open != null) {
+        if (id == SICHERUNG) {
+            Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Box(Modifier.fillMaxSize().background(farbSchimmer()).safeDrawingPadding()) {
+                    SicherungScreen(modules, onBack = { openId = null })
+                }
+            }
+        } else if (open != null) {
             val info = ModulInfos.zu(open.id, open.description)
             DachTheme(info.farbe) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -109,7 +127,7 @@ fun DachApp(modules: List<SubApp>) {
         } else {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 Box(Modifier.safeDrawingPadding()) {
-                    Overview(modules, onOpen = { openId = it.id })
+                    Overview(modules, onOpen = { openId = it.id }, onSicherung = { openId = SICHERUNG })
                 }
             }
         }
@@ -139,13 +157,21 @@ private fun gruss(): String = when (LocalTime.now().hour) {
 }
 
 @Composable
-private fun Overview(modules: List<SubApp>, onOpen: (SubApp) -> Unit) {
+private fun Overview(modules: List<SubApp>, onOpen: (SubApp) -> Unit, onSicherung: () -> Unit) {
     val context = LocalContext.current
     val speicher = remember(context) { Ausgeblendet(context.applicationContext) }
     var ausgeblendet by remember { mutableStateOf(speicher.laden()) }
     var einstellungen by rememberSaveable { mutableStateOf(false) }
     var infoId by rememberSaveable { mutableStateOf<String?>(null) }
     val sichtbar = modules.filter { it.id !in ausgeblendet }
+    var heute by remember { mutableStateOf<List<Pair<SubApp, String>>>(emptyList()) }
+    // Heute-Zeile: jede Unter-App darf einen kurzen Hinweis liefern; jede Minute neu.
+    LaunchedEffect(sichtbar) {
+        while (true) {
+            heute = withContext(Dispatchers.IO) { sichtbar.mapNotNull { m -> runCatching { m.heute(context.applicationContext) }.getOrNull()?.let { m to it } } }
+            delay(60_000)
+        }
+    }
 
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         // Zwei Spalten auf dem Handy, auf dem Tablet entsprechend mehr.
@@ -169,8 +195,25 @@ private fun Overview(modules: List<SubApp>, onOpen: (SubApp) -> Unit) {
                         )
                         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge)
                     }
+                    FilledTonalIconButton(onClick = onSicherung, modifier = Modifier.padding(end = 8.dp)) {
+                        Icon(Icons.Outlined.Backup, contentDescription = "Sicherung")
+                    }
                     FilledTonalIconButton(onClick = { einstellungen = true }) {
                         Icon(Icons.Outlined.Settings, contentDescription = "Module ein- und ausblenden")
+                    }
+                }
+            }
+            if (heute.isNotEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        heute.forEach { (m, text) ->
+                            val info = ModulInfos.zu(m.id, m.description)
+                            AssistChip(
+                                onClick = { onOpen(m) },
+                                label = { Text(text, maxLines = 1) },
+                                leadingIcon = { Icon(info.icon, contentDescription = null, tint = info.farbe, modifier = Modifier.size(18.dp)) },
+                            )
+                        }
                     }
                 }
             }

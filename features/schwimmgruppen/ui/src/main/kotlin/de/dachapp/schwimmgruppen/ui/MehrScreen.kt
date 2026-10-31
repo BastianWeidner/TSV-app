@@ -34,6 +34,9 @@ fun MehrTab(state: UiState, vm: SchwimmgruppenViewModel) {
     var abzeichen by remember(state.ladeNummer) { mutableStateOf(e.abzeichen.joinToString("\n")) }
     val sichern = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> uri?.let(vm::sicherungSchreiben) }
     val laden = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::sicherungLesen) }
+    val anlegen = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -> uri?.let(vm::dateiGewaehlt) }
+    val waehlen = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::dateiGewaehlt) }
+    var trennenFragen by remember { mutableStateOf(false) }
     var ladenFragen by remember { mutableStateOf(false) }
     var loeschenFragen by remember { mutableStateOf(false) }
 
@@ -73,6 +76,41 @@ fun MehrTab(state: UiState, vm: SchwimmgruppenViewModel) {
         Abschnitt("Abzeichen zur Auswahl") {
             Eingabe("Ein Abzeichen pro Zeile", abzeichen, { abzeichen = it; vm.einstellungen(e.copy(abzeichen = zeilen(it))) }, mehrzeilig = true)
         }
+        Abschnitt("Mit anderen Trainern teilen") {
+            val t = state.teilen
+            Text(
+                when {
+                    !t.verbunden -> "Nicht verbunden"
+                    t.fehler != null -> t.fehler
+                    t.laeuft && t.letzter == 0L -> "Erster Abgleich läuft …"
+                    t.letzter == 0L -> "Verbunden, noch nicht abgeglichen"
+                    else -> "Abgeglichen um " + java.time.Instant.ofEpochMilli(t.letzter).atZone(java.time.ZoneId.systemDefault()).toLocalTime().withNano(0)
+                },
+                style = MaterialTheme.typography.titleSmall,
+                color = if (t.fehler != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                "Mehrere Trainer erfassen Anwesenheit, Zeiten und Schwimmer auf ihren eigenen Geräten; alles landet in " +
+                    "einer gemeinsamen Datei. Auf dem ersten Gerät „Neue Datei anlegen“ und im Dateidialog Google Drive " +
+                    "wählen, die Datei in Drive für die anderen Trainer freigeben. Auf deren Geräten „Vorhandene Datei " +
+                    "wählen“. Die App braucht kein Internet, Drive überträgt die Datei. Abgeglichen wird, solange " +
+                    "Schwimmgruppen offen ist, und kurz nach jeder Änderung. Die Datei enthält Mitgliederdaten; nur mit " +
+                    "Trainern teilen.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { anlegen.launch("schwimmgruppen-gemeinsam.json") }, modifier = Modifier.weight(1f)) { Text("Neue Datei anlegen") }
+                OutlinedButton(onClick = { waehlen.launch(arrayOf("application/json", "application/octet-stream", "text/plain")) }, modifier = Modifier.weight(1f)) {
+                    Text("Vorhandene Datei wählen")
+                }
+            }
+            if (t.verbunden) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = vm::jetztAbgleichen, modifier = Modifier.weight(1f)) { Text("Jetzt abgleichen") }
+                    OutlinedButton(onClick = { trennenFragen = true }, modifier = Modifier.weight(1f)) { Text("Trennen") }
+                }
+            }
+        }
         Abschnitt("Sicherung") {
             Text(
                 "Alle Schwimmer, Gruppen, Anwesenheiten, Zeiten und Erfolge als eine Datei. Im Dateidialog lässt sich " +
@@ -85,6 +123,14 @@ fun MehrTab(state: UiState, vm: SchwimmgruppenViewModel) {
             }
         }
         OutlinedButton(onClick = { loeschenFragen = true }, modifier = Modifier.fillMaxWidth()) { Text("Alle Daten löschen") }
+    }
+    if (trennenFragen) {
+        ConfirmDialog(
+            "Abgleich mit den anderen Trainern beenden? Die Daten auf diesem Gerät bleiben, neue Einträge der anderen kommen nicht mehr an.",
+            "Trennen",
+            vm::dateiTrennen,
+            { trennenFragen = false },
+        )
     }
     if (ladenFragen) {
         ConfirmDialog(

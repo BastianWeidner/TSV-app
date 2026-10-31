@@ -1,5 +1,6 @@
 package de.dachapp.schwimmkurs.ui
 
+import android.content.Context
 import de.dachapp.module.AbzeichenPruefung
 import de.dachapp.module.Pruefling
 import androidx.activity.compose.BackHandler
@@ -87,5 +88,13 @@ object SchwimmkursSubApp : SubApp {
             }
         }
         MessageDialog(state.message, vm::dismissMessage)
+    }
+
+    override fun heute(context: Context): String? {
+        val b = SchwimmkursStore(context).run { load().also { close() } } ?: return null
+        val jetzt = java.time.LocalDateTime.now()
+        val t = b.kurse.flatMap { k -> k.termine.filter { it.datum == jetzt.toLocalDate() && jetzt.toLocalTime().isBefore(it.ende) }.map { k to it } }
+            .minByOrNull { it.second.beginn } ?: return null
+        return "Schwimmkurs ${t.second.beginn} ${t.first.name}".trim()
     }
 }

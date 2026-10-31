@@ -3,6 +3,12 @@ package de.dachapp.schwimmgruppen.ui
 import de.dachapp.module.Schwimmabzeichen
 import android.app.Application
 import android.content.ContentResolver
+import android.content.Intent
+import de.dachapp.abgleich.Abgleich
+import de.dachapp.module.GeteilteDatei
+import de.dachapp.schwimmgruppen.logic.Teilen
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.lifecycle.AndroidViewModel
@@ -85,6 +91,17 @@ data class WettkampfStand(
     val anzahlStarts: Int get() = starts.values.sumOf { it.size }
 }
 
+/** Abgleich mit anderen Trainern über eine geteilte Datei. */
+data class TeilenStand(
+    val verbunden: Boolean = false,
+    /** Letzter erfolgreicher Abgleich, 0 = noch nie. */
+    val letzter: Long = 0,
+    val laeuft: Boolean = false,
+    val fehler: String? = null,
+    /** Abgleich ruht, bis eine andere Datei gewählt wird (fremde Datei, Zugriff weg). */
+    val angehalten: Boolean = false,
+)
+
 data class ImportStand(val dateiname: String, val tabelle: Tabelle, val zuordnung: List<Zuordnung>)
 
 data class UiState(
@@ -103,6 +120,7 @@ data class UiState(
     val beschaeftigt: Boolean = false,
     /** Zählt hoch, wenn der Bestand von außen ersetzt wurde (Sicherung, Löschen); Formulare laden dann neu. */
     val ladeNummer: Int = 0,
+    val teilen: TeilenStand = TeilenStand(),
     val message: String? = null,
 ) {
     val ansicht: Ansicht? get() = stapel.lastOrNull()
@@ -115,6 +133,12 @@ class SchwimmgruppenViewModel(app: Application) : AndroidViewModel(app) {
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
     private var speichernJob: Job? = null
+    private val verbindungStore = VerbindungStore(app)
+    private var verbindung = verbindungStore.load()
+    private val datei = GeteilteDatei(app.contentResolver)
+    private val abgleichSperre = Mutex()
+    private var abgleichJob: Job? = null
+    private var schleife: Job? = null
 
     init {
         val geladen = store.load()
@@ -124,6 +148,7 @@ class SchwimmgruppenViewModel(app: Application) : AndroidViewModel(app) {
         } else {
             _state.value = UiState(bestand = geladen)
         }
+        _state.update { it.copy(teilen = TeilenStand(verbunden = verbindung.datei != null, letzter = verbindung.letzter)) }
     }
 
     private val s get() = _state.value
@@ -156,10 +181,107 @@ class SchwimmgruppenViewModel(app: Application) : AndroidViewModel(app) {
             delay(400)
             store.save(s.bestand)
         }
+        // Änderungen bald an die anderen Trainer weitergeben.
+        if (verbindung.datei != null) {
+            abgleichJob?.cancel()
+            abgleichJob = viewModelScope.launch {
+                delay(3000)
+                abgleichen()
+            }
+        }
     }
+
+    // ---------- Abgleich mit anderen Trainern ----------
+
+    /** Regelmäßiger Abgleich, solange Schwimmgruppen im Vordergrund offen ist (siehe SchwimmgruppenSubApp). */
+    fun sichtbar(an: Boolean) {
+        schleife?.cancel()
+        schleife = if (!an || verbindung.datei == null) null else viewModelScope.launch {
+            while (true) {
+                abgleichen()
+                delay(60_000)
+            }
+        }
+    }
+
+    fun jetztAbgleichen() {
+        viewModelScope.launch { abgleichen() }
+    }
+
+    /** Datei aus dem Dateidialog übernehmen: dauerhafte Berechtigung holen und sofort abgleichen. */
+    fun dateiGewaehlt(uri: Uri) {
+        val rechte = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        try {
+            resolver.takePersistableUriPermission(uri, rechte)
+        } catch (e: SecurityException) {
+            showMessage("Für diese Datei gibt es keine dauerhafte Schreibberechtigung. Bitte eine Datei in Google Drive oder im Gerätespeicher wählen.")
+            return
+        }
+        verbindung.datei?.let { alt -> if (alt != uri.toString()) runCatching { resolver.releasePersistableUriPermission(Uri.parse(alt), rechte) } }
+        verbindungSetzen(Teilen.Verbindung(datei = uri.toString()))
+        sichtbar(true)
+    }
+
+    /** Abgleich beenden; die Daten auf diesem Gerät bleiben. */
+    fun dateiTrennen() {
+        verbindung.datei?.let { alt ->
+            runCatching { resolver.releasePersistableUriPermission(Uri.parse(alt), Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) }
+        }
+        schleife?.cancel()
+        abgleichJob?.cancel()
+        verbindungSetzen(Teilen.Verbindung())
+    }
+
+    private fun verbindungSetzen(v: Teilen.Verbindung) {
+        verbindung = v
+        viewModelScope.launch(Dispatchers.IO) { verbindungStore.save(v) }
+        _state.update { it.copy(teilen = TeilenStand(verbunden = v.datei != null, letzter = v.letzter)) }
+    }
+
+    private suspend fun abgleichen() = abgleichSperre.withLock {
+        val uriText = verbindung.datei ?: return@withLock
+        if (s.teilen.angehalten) return@withLock
+        val vorher = s.bestand
+        val v = verbindung
+        _state.update { it.copy(teilen = it.teilen.copy(laeuft = true)) }
+        val r = try {
+            withContext(Dispatchers.IO) {
+                val uri = Uri.parse(uriText)
+                val (text, laenge) = datei.lesen(uri)
+                val r = Abgleich.abgleich(
+                    Teilen.APP, Teilen.zerlegen(vorher), v.stand, Abgleich.decode(text, Teilen.APP),
+                    System.currentTimeMillis(), Teilen.nurVorgaben(vorher),
+                )
+                if (r.schreiben) datei.schreiben(uri, Abgleich.encode(r.stand), laenge)
+                r
+            }
+        } catch (e: IllegalArgumentException) {
+            return@withLock teilenFehler(e.message ?: "Datei unlesbar.", angehalten = true)
+        } catch (e: SecurityException) {
+            return@withLock teilenFehler("Kein Zugriff mehr auf die Datei. Bitte unter „Mehr“ neu wählen.", angehalten = true)
+        } catch (e: Exception) {
+            // Kurz nicht erreichbar (z. B. Drive offline): beim nächsten Durchlauf wieder versuchen.
+            return@withLock teilenFehler("Datei gerade nicht erreichbar, neuer Versuch folgt.", angehalten = false)
+        }
+        // Inzwischen wurde etwas geändert oder getrennt: nichts übernehmen, der nächste Durchlauf holt es nach.
+        if (s.bestand != vorher || verbindung !== v) {
+            _state.update { it.copy(teilen = it.teilen.copy(laeuft = false)) }
+            return@withLock
+        }
+        if (r.uebernehmen) {
+            _state.update { it.copy(bestand = Teilen.zusammensetzen(it.bestand, r.stand.werte())) }
+            speichernJob?.cancel()
+            store.save(s.bestand)
+        }
+        verbindungSetzen(v.copy(letzter = System.currentTimeMillis(), stand = r.stand))
+    }
+
+    private fun teilenFehler(text: String, angehalten: Boolean) =
+        _state.update { it.copy(teilen = it.teilen.copy(laeuft = false, fehler = text, angehalten = angehalten)) }
 
     override fun onCleared() {
         speichernJob?.cancel()
+        schleife?.cancel()
         store.save(s.bestand)
         store.close()
     }
@@ -428,12 +550,18 @@ class SchwimmgruppenViewModel(app: Application) : AndroidViewModel(app) {
         } catch (e: IllegalArgumentException) {
             return@imHintergrund showMessage(e.message ?: "Datei nicht lesbar.")
         }
+        // Eine Sicherung ersetzt alles; geteilt würde sie sonst bei den anderen Trainern löschen. Daher trennen.
+        val warVerbunden = verbindung.datei != null
+        if (warVerbunden) dateiTrennen()
         aendern { neu }
         _state.update { it.copy(ladeNummer = it.ladeNummer + 1, auswahl = null) }
-        showMessage("Sicherung eingespielt: ${neu.mitglieder.size} Mitglieder, ${neu.gruppen.size} Gruppen.")
+        if (warVerbunden) showMessage("Sicherung eingespielt: ${neu.mitglieder.size} Mitglieder. Der Abgleich mit den anderen Trainern wurde getrennt; bei Bedarf unter „Mehr“ neu verbinden.")
+        else showMessage("Sicherung eingespielt: ${neu.mitglieder.size} Mitglieder, ${neu.gruppen.size} Gruppen.")
     }
 
     fun allesLoeschen() {
+        // Sonst würde das Löschen bei allen Trainern ankommen.
+        dateiTrennen()
         aendern { Bestand(einstellungen = it.einstellungen) }
         _state.update { it.copy(ladeNummer = it.ladeNummer + 1, auswahl = null) }
     }

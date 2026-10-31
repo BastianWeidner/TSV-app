@@ -15,6 +15,8 @@ kotlin {
 
 dependencies {
     implementation(libs.kotlinx.serialization.json)
+    // Abgleich mit anderen Trainern über eine geteilte Datei.
+    api(project(":core:abgleich"))
     testImplementation(libs.junit)
     testImplementation(kotlin("test-junit"))
 }

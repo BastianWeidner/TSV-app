@@ -20,8 +20,8 @@ android {
         applicationId = "de.dachapp"
         minSdk = 29
         targetSdk = 35
-        versionCode = 35
-        versionName = "1.14.0"
+        versionCode = 36
+        versionName = "1.15.0"
     }
 
     // Einzige Variante "schwimmen" (App-ID de.dachapp.schwimmen): Schwimmkurs, Schwimmgruppen, Schwimmleitung.
@@ -69,6 +69,9 @@ android {
     lint {
         abortOnError = true
         checkReleaseBuilds = true
+        // Erinnerungen (core/module-api) zeigt Benachrichtigungen nur nach Prüfung zur Laufzeit. „alle“ hat
+        // POST_NOTIFICATIONS, „schwimmen“ ruft es nie auf und soll ohne Berechtigungen bleiben.
+        disable += "NotificationPermission"
     }
 }
 
