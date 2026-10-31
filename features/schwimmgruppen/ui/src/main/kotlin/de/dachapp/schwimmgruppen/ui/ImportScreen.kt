@@ -14,6 +14,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import de.dachapp.module.Auswahl
+import de.dachapp.module.BigButton
+import de.dachapp.module.Page
 import de.dachapp.schwimmgruppen.logic.MitgliedFeld
 import de.dachapp.schwimmgruppen.logic.Zuordnung
 

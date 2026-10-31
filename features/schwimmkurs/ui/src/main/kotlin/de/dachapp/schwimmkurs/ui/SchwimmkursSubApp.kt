@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import de.dachapp.module.MessageDialog
 import de.dachapp.module.SubApp
 
 /** Registrierung der Schwimmkurs-Unter-App in der Dach-App. */

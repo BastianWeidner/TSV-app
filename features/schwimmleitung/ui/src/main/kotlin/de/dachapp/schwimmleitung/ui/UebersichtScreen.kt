@@ -36,6 +36,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import de.dachapp.module.Abschnitt
+import de.dachapp.module.BigButton
+import de.dachapp.module.FormPage
 import de.dachapp.schwimmleitung.logic.Berichte
 import de.dachapp.schwimmleitung.logic.Format
 import de.dachapp.schwimmleitung.logic.Kennzahlen

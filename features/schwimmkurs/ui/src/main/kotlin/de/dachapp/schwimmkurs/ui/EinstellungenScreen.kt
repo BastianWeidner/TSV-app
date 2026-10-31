@@ -17,6 +17,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import de.dachapp.module.Abschnitt
+import de.dachapp.module.ConfirmDialog
+import de.dachapp.module.Eingabe
+import de.dachapp.module.FormPage
 import de.dachapp.schwimmkurs.logic.Einladungen
 import de.dachapp.schwimmkurs.logic.Einstellungen
 import de.dachapp.schwimmkurs.logic.Vorlagen

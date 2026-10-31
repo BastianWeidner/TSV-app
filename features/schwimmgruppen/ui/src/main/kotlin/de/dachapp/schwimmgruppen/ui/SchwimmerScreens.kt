@@ -42,6 +42,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import de.dachapp.module.Abschnitt
+import de.dachapp.module.Auswahl
+import de.dachapp.module.BigButton
+import de.dachapp.module.ConfirmDialog
+import de.dachapp.module.Eingabe
+import de.dachapp.module.FormPage
+import de.dachapp.module.Leer
+import de.dachapp.module.Page
 import de.dachapp.module.Pflichtfeld
 import de.dachapp.schwimmgruppen.logic.Bestand
 import de.dachapp.schwimmgruppen.logic.Erfolg

@@ -37,6 +37,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import de.dachapp.module.Abschnitt
+import de.dachapp.module.Auswahl
+import de.dachapp.module.BigButton
+import de.dachapp.module.ConfirmDialog
+import de.dachapp.module.Eingabe
+import de.dachapp.module.FormPage
+import de.dachapp.module.Leer
+import de.dachapp.module.Page
 import de.dachapp.module.Pflichtfeld
 import de.dachapp.schwimmleitung.logic.AufgabeStatus
 import de.dachapp.schwimmleitung.logic.Beleg
@@ -44,11 +52,11 @@ import de.dachapp.schwimmleitung.logic.Format
 import de.dachapp.schwimmleitung.logic.Meldung
 import de.dachapp.schwimmleitung.logic.MeldungArt
 import de.dachapp.schwimmleitung.logic.Zustand
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 private val ZEIT: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
 

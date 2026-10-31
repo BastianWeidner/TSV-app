@@ -19,6 +19,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import de.dachapp.module.Abschnitt
+import de.dachapp.module.BigButton
+import de.dachapp.module.FormPage
+import de.dachapp.module.Leer
+import de.dachapp.module.Page
 import de.dachapp.schwimmkurs.logic.Einladung
 import de.dachapp.schwimmkurs.logic.Einladungen
 import de.dachapp.schwimmkurs.logic.Vorlagen
