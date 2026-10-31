@@ -26,6 +26,7 @@ import de.dachapp.schwimmkurs.logic.Vorschlag
 import de.dachapp.schwimmkurs.logic.Zahlung
 import de.dachapp.schwimmkurs.logic.Zuordnung
 import de.dachapp.schwimmkurs.logic.Website
+import de.dachapp.schwimmkurs.logic.zusammenfuehren
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -196,10 +197,13 @@ class SchwimmkursViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------- Import ----------
 
-    fun importLesen(uri: Uri) = imHintergrund {
-        val (name, bytes) = lesen(uri)
+    /** Eine Tabelle oder mehrere gleich aufgebaute, z. B. die Anhänge der Wartelisten-Mails von der Website. */
+    fun importLesen(uris: List<Uri>) = imHintergrund {
+        if (uris.isEmpty()) return@imHintergrund
+        val dateien = uris.map { lesen(it) }
+        val name = if (dateien.size == 1) dateien[0].first else "${dateien.size} Dateien"
         val tabelle = try {
-            withContext(Dispatchers.Default) { TabellenLeser.lesen(bytes) }
+            withContext(Dispatchers.Default) { zusammenfuehren(dateien.map { TabellenLeser.lesen(it.second) }) }
         } catch (e: TabellenFehler) {
             return@imHintergrund showMessage(e.message ?: "Datei nicht lesbar.")
         }

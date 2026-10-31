@@ -17,6 +17,19 @@ data class Tabelle(val kopf: List<String>, val zeilen: List<List<String>>) {
 
 class TabellenFehler(message: String) : Exception(message)
 
+/**
+ * Hängt mehrere Tabellen mit gleicher Kopfzeile aneinander, z. B. viele Anhänge `anmeldung.csv` aus den
+ * Wartelisten-Mails der Website. Wirft [TabellenFehler], wenn die Spalten nicht zusammenpassen.
+ */
+fun zusammenfuehren(tabellen: List<Tabelle>): Tabelle {
+    val erste = tabellen.firstOrNull() ?: throw TabellenFehler("Keine Datei gewählt.")
+    fun norm(k: List<String>) = k.map { it.trim().lowercase() }
+    tabellen.drop(1).firstOrNull { norm(it.kopf) != norm(erste.kopf) }?.let {
+        throw TabellenFehler("Die Dateien haben unterschiedliche Spalten. Bitte nur Dateien gleicher Art zusammen auswählen.")
+    }
+    return Tabelle(erste.kopf, tabellen.flatMap { it.zeilen })
+}
+
 /** Liest CSV- und Excel-Dateien (.xlsx) ohne Fremdbibliothek. */
 object TabellenLeser {
 

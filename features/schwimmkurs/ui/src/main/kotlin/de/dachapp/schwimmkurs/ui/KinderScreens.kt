@@ -51,7 +51,8 @@ fun KinderTab(state: UiState, vm: SchwimmkursViewModel) {
     val b = state.bestand
     var suche by rememberSaveable { mutableStateOf("") }
     var filter by rememberSaveable { mutableStateOf(Filter.ALLE) }
-    val datei = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::importLesen) }
+    // Mehrere Dateien auf einmal, z. B. alle Anhänge anmeldung.csv aus den Wartelisten-Mails der Website.
+    val datei = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris -> vm.importLesen(uris) }
     val heute = LocalDate.now()
 
     val liste = b.kinder
