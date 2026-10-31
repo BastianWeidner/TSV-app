@@ -22,6 +22,7 @@ import de.dachapp.schwimmkurs.logic.Bestand
 import de.dachapp.schwimmkurs.logic.Einladung
 import de.dachapp.schwimmkurs.logic.Einladungen
 import de.dachapp.schwimmkurs.logic.Einstellungen
+import de.dachapp.schwimmkurs.logic.GiroCode
 import de.dachapp.schwimmkurs.logic.Kurs
 import de.dachapp.schwimmkurs.logic.Kursliste
 import java.io.File
@@ -210,6 +211,7 @@ object Versand {
                 zy += 18f
             }
             s.y += hoehe + 10f
+            e.giroCode?.let { giroCode(s, it) }
             s.text("Der Kursplatz gilt erst nach fristgerechtem Zahlungseingang als fest gebucht.", stift(9.5f, farbe = GRAU))
 
             // Haftungserklärung auf eigener Seite.
@@ -221,6 +223,26 @@ object Versand {
         } finally {
             doc.close()
         }
+    }
+
+    /** QR-Code für die Banking-App mit kurzer Erklärung daneben. */
+    private fun giroCode(s: Seiten, inhalt: String) {
+        val m = GiroCode.matrix(inhalt)
+        val groesse = 96f
+        s.platz(groesse + 16f)
+        val modul = groesse / m.size
+        val dunkel = Paint().apply { color = 0xFF000000.toInt() }
+        for (y in m.indices) for (x in m[y].indices) if (m[y][x]) {
+            val l = RAND + 6f + x * modul
+            val o = s.y + 6f + y * modul
+            s.c.drawRect(l, o, l + modul + 0.2f, o + modul + 0.2f, dunkel)
+        }
+        val x = RAND + groesse + 24f
+        s.c.drawText("Bequem überweisen mit GiroCode", x, s.y + 30f, stift(11f, fett = true))
+        s.c.drawText("In der Banking-App „Scannen“ bzw. „Foto-Überweisung“ wählen", x, s.y + 48f, stift(9.5f, farbe = GRAU))
+        s.c.drawText("und diesen Code fotografieren. Empfänger, Betrag und", x, s.y + 62f, stift(9.5f, farbe = GRAU))
+        s.c.drawText("Verwendungszweck sind dann schon ausgefüllt.", x, s.y + 76f, stift(9.5f, farbe = GRAU))
+        s.y += groesse + 16f
     }
 
     private val DATUM = java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")

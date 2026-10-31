@@ -34,6 +34,27 @@ Gruppen als Spalten).
 - **Hallenmodus:** Für das Tablet am Beckenrand. Nimmt automatisch das laufende bzw. nächste Training des Tages,
   große Kacheln zum Abhaken, Bildschirm bleibt an. Schwimmer aus anderen Gruppen lassen sich dazunehmen.
   „Noch ohne Gruppe“ zeigt Schwimmer ohne Einteilung; Antippen hakt sie ab und teilt sie in diese Gruppe ein.
+- **Trainingsuhr:** Unter „Training“ bzw. im Hallenmodus oben „⏱ Uhr“. *Abgangsuhr:* Abgänge je Serie, Abstand
+  (z. B. 1:45), Serien und Pause einstellen; großer Countdown bis zum nächsten Abgang, kurze Töne bei 3-2-1 und ein
+  langer Ton bei jedem Abgang (Lautstärke = Medienlautstärke). *Stoppuhr Bahnen:* 1 bis 8 Bahnen, je Bahn Schwimmer
+  und Strecke wählen, gemeinsamer Start, je Bahn „Zwischenzeit“ und „Anschlag“ (mit Teilzeiten). „Zeiten beim
+  Schwimmer speichern“ trägt die Endzeiten als Trainingszeit von heute ein. Bildschirm bleibt an, Drehen hält die
+  Uhr nicht an.
+- **Wettkämpfe (DSV 7/8, LENEX):** Unter „Mehr“ › „Wettkampfmeldungen“ einmal Vereinskennzahl, Landesverband und
+  meldende Person eintragen. „Ausschreibung melden, Ergebnisse einlesen“ öffnet eine Datei und erkennt die Art selbst:
+  *Ausschreibung* (Wettkampfdefinitionsliste .DSV7/.DSV8/.DSV8z oder LENEX-Einladung .lef/.lxf): je Schwimmer mit
+  Wettkampfinteresse „ja“ (Schalter für alle aktiven) die passenden Einzelstarts nach Geschlecht und Jahrgang antippen,
+  Meldezeit ist die Bestzeit über die Strecke (sonst „ohne Zeit“), Pflichtzeiten werden geprüft. „Meldedatei
+  speichern“ schreibt die Vereinsmeldeliste im Format der Ausschreibung mit Dateinamen nach Standard
+  (JJJJ-MM-TT-Ort-Verein-Me.DSV8). *Ergebnisse* (Wettkampf-/Vereinsergebnisliste oder LENEX-Ergebnis): Starts des
+  eigenen Vereins (über Kennzahl oder Vereinsname) werden über DSV-ID oder Name und Jahrgang zugeordnet; „übernehmen“
+  speichert die Zeiten als Wettkampfzeiten, Platz 1–3 als Erfolg und ergänzt fehlende DSV-IDs. DSV-ID je Schwimmer
+  im Bearbeiten-Formular. Staffeln werden nicht gemeldet. Logik in `Dsv.kt`, `Lenex.kt`, `Wettkampf.kt`.
+- **Abzeichen prüfen:** Unter „Training“ unten „Abzeichen prüfen“ oder im Hallenmodus 🏅 (dann für die gewählte Gruppe); Gruppe oben umschaltbar. Abzeichen (Seepferdchen, Bronze, Silber, Gold nach Prüfungsordnung 2020) und
+  Teilleistung wählen, dann die Schwimmer antippen: abgehakt mit heutigem Datum, auch über mehrere Termine. „Übersicht“ zeigt
+  den Stand je Schwimmer, Antippen klappt alle Teile auf. Sind alle Teile da, wird es als Erfolg (Abzeichen) mit dem Tag der letzten Teilleistung eingetragen. „Bestellliste Abzeichen“ listet
+  die bestandenen Abzeichen mit Datum zum Teilen. Katalog und Bildschirm liegen gemeinsam in core
+  (`Schwimmabzeichen.kt`, `AbzeichenPruefung.kt`).
 - **Statistik:** Je Gruppe Trainings, Teilnahmen, Durchschnitt, Höchstwert, Ausfälle und nicht erfasste Termine,
   dazu Monatsbalken. Zeitraum: Monat, 3 Monate, Saison (ab September), Kalenderjahr. Als CSV für Excel speichern.
 - **Sicherung:** Alle Daten als eine Datei sichern und einspielen; im Dateidialog Google Drive wählen. So kommen die

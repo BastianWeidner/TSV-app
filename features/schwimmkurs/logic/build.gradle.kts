@@ -15,6 +15,8 @@ kotlin {
 
 dependencies {
     implementation(libs.kotlinx.serialization.json)
+    // QR-Code für die Überweisung (GiroCode), reine Java-Bibliothek ohne Android-Abhängigkeit.
+    api(libs.zxing.core)
     testImplementation(libs.junit)
     testImplementation(kotlin("test-junit"))
 }

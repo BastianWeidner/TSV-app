@@ -1,14 +1,19 @@
 package de.dachapp.schwimmkurs.ui
 
+import de.dachapp.module.Schwimmabzeichen
 import android.app.Application
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import de.dachapp.schwimmkurs.logic.Abgleich
 import de.dachapp.schwimmkurs.logic.Bestand
 import de.dachapp.schwimmkurs.logic.BestandCodec
+import de.dachapp.schwimmkurs.logic.Einladung
+import de.dachapp.schwimmkurs.logic.Einladungen
 import de.dachapp.schwimmkurs.logic.Einstellungen
+import de.dachapp.schwimmkurs.logic.Kontoauszug
 import de.dachapp.schwimmkurs.logic.KindFeld
 import de.dachapp.schwimmkurs.logic.KinderImport
 import de.dachapp.schwimmkurs.logic.Kind
@@ -18,6 +23,7 @@ import de.dachapp.schwimmkurs.logic.Tabelle
 import de.dachapp.schwimmkurs.logic.TabellenFehler
 import de.dachapp.schwimmkurs.logic.TabellenLeser
 import de.dachapp.schwimmkurs.logic.Vorschlag
+import de.dachapp.schwimmkurs.logic.Zahlung
 import de.dachapp.schwimmkurs.logic.Zuordnung
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -28,6 +34,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -46,7 +53,12 @@ sealed interface Ansicht {
     data object Import : Ansicht
     data object Vorschlag : Ansicht
     data class EinladungVorschau(val familienSchluessel: String) : Ansicht
+    data object Zahlungsabgleich : Ansicht
+    data class Pruefung(val kursId: String) : Ansicht
 }
+
+/** Eingelesener Kontoauszug mit den angehakten Vorschlägen (Familienschlüssel). */
+data class AbgleichStand(val dateiname: String, val abgleich: Abgleich, val auswahl: Set<String>)
 
 data class ImportStand(val dateiname: String, val tabelle: Tabelle, val zuordnung: List<Zuordnung>)
 
@@ -57,6 +69,7 @@ data class UiState(
     val stapel: List<Ansicht> = emptyList(),
     val import: ImportStand? = null,
     val vorschlag: Vorschlag? = null,
+    val abgleich: AbgleichStand? = null,
     val beschaeftigt: Boolean = false,
     /** Zählt hoch, wenn der Bestand von außen ersetzt wurde (Sicherung, Löschen); Formulare laden dann neu. */
     val ladeNummer: Int = 0,
@@ -119,12 +132,30 @@ class SchwimmkursViewModel(app: Application) : AndroidViewModel(app) {
                 stapel = it.stapel.dropLast(1),
                 import = if (oben is Ansicht.Import) null else it.import,
                 vorschlag = if (oben is Ansicht.Vorschlag) null else it.vorschlag,
+                abgleich = if (oben is Ansicht.Zahlungsabgleich) null else it.abgleich,
             )
         }
         return true
     }
 
     // ---------- Kinder ----------
+
+    /** Teilleistung abhaken (Datum) oder zurücknehmen (null); ist das Abzeichen damit komplett, steht es beim Kind. */
+    fun pruefungSetzen(kindId: String, abzeichen: String, teil: String, datum: LocalDate?) = aendern { b ->
+        val k = b.kind(kindId) ?: return@aendern b
+        val a = Schwimmabzeichen.zu(abzeichen) ?: return@aendern b
+        val vorher = Schwimmabzeichen.fertig(k.pruefung, a)
+        val stand = Schwimmabzeichen.setzen(k.pruefung, a.name, teil, datum)
+        val nachher = Schwimmabzeichen.fertig(stand, a)
+        val name = b.einstellungen.abzeichen.firstOrNull { Schwimmabzeichen.zu(it) == a } ?: a.name
+        val abz = when {
+            nachher && !vorher -> k.abzeichen + name
+            vorher && !nachher -> k.abzeichen - name
+            else -> k.abzeichen
+        }
+        b.kindSetzen(k.copy(pruefung = stand, abzeichen = abz))
+    }
+
 
     fun kindSpeichern(kind: Kind, kursId: String?) {
         aendern { it.kindSetzen(kind).zuteilen(kind.id, kursId) }
@@ -201,6 +232,42 @@ class SchwimmkursViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun versandZuruecksetzen(familienSchluessel: String) = aendern { it.copy(versendet = it.versendet - familienSchluessel) }
+
+    // ---------- Zahlungen ----------
+
+    /** Liest den CSV-Export der Bank und schlägt Zuordnungen vor; angehakt sind nur die sicheren. */
+    fun kontoauszugLesen(uri: Uri) = imHintergrund {
+        val (name, bytes) = lesen(uri)
+        val abgleich = try {
+            withContext(Dispatchers.Default) {
+                Kontoauszug.abgleichen(Einladungen.erstellen(bestand), Kontoauszug.buchungen(TabellenLeser.lesen(bytes)), bestand.zahlungen.keys)
+            }
+        } catch (e: TabellenFehler) {
+            return@imHintergrund showMessage(e.message ?: "Datei nicht lesbar.")
+        }
+        val auswahl = abgleich.treffer.filter { it.sicher && it.hinweis.isEmpty() }.map { it.einladung.familienSchluessel }.toSet()
+        _state.update { it.copy(abgleich = AbgleichStand(name, abgleich, auswahl), stapel = it.stapel + Ansicht.Zahlungsabgleich) }
+    }
+
+    fun abgleichUmschalten(familienSchluessel: String) = _state.update { st ->
+        val a = st.abgleich ?: return@update st
+        st.copy(abgleich = a.copy(auswahl = if (familienSchluessel in a.auswahl) a.auswahl - familienSchluessel else a.auswahl + familienSchluessel))
+    }
+
+    fun abgleichUebernehmen() {
+        val a = s.abgleich ?: return
+        val neu = a.abgleich.treffer.filter { it.einladung.familienSchluessel in a.auswahl }
+            .associate { it.einladung.familienSchluessel to Zahlung(it.buchung.datum ?: LocalDate.now(), it.buchung.betragCent, "auszug") }
+        aendern { it.copy(zahlungen = it.zahlungen + neu) }
+        zurueck()
+        showMessage("${neu.size} Zahlungen als eingegangen vermerkt.")
+    }
+
+    fun bezahltSetzen(einladung: Einladung) = aendern {
+        it.copy(zahlungen = it.zahlungen + (einladung.familienSchluessel to Zahlung(LocalDate.now(), einladung.betragCent, "hand")))
+    }
+
+    fun bezahltZuruecknehmen(familienSchluessel: String) = aendern { it.copy(zahlungen = it.zahlungen - familienSchluessel) }
 
     // ---------- Einstellungen & Sicherung ----------
 

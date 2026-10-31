@@ -25,4 +25,6 @@ dependencies {
     api(libs.compose.runtime)
     // Für die gemeinsame Pflichtfeld-Markierung (Pflichtfeld.kt).
     api(libs.compose.material3)
+    testImplementation(libs.junit)
+    testImplementation(kotlin("test-junit"))
 }

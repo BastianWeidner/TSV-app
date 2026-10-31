@@ -33,6 +33,8 @@ data class Einladung(
     val text: String,
     val haftungTitel: String,
     val haftungText: String,
+    /** Inhalt des GiroCodes für die Überweisung, null bei fehlender oder ungültiger IBAN. */
+    val giroCode: String? = null,
 ) {
     val kinderNamen: String get() = Einladungen.aufzaehlen(plaetze.map { it.first.vorname })
     val nachname: String get() = plaetze.map { it.first.nachname }.filter { it.isNotBlank() }.distinct().joinToString("/")
@@ -161,6 +163,7 @@ object Einladungen {
             text = einsetzen(e.mailText, werte),
             haftungTitel = einsetzen(e.haftungTitel, werte),
             haftungText = einsetzen(e.haftungText, werte),
+            giroCode = GiroCode.inhalt(e.kontoinhaber.ifBlank { e.verein }, e.iban, e.bic, betrag, zweck),
         )
     }
 

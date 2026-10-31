@@ -18,7 +18,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.KeyboardType
 import de.dachapp.module.Abschnitt
+import de.dachapp.module.Auswahl
 import de.dachapp.module.ConfirmDialog
 import de.dachapp.module.Eingabe
 import de.dachapp.module.FormPage
@@ -51,6 +53,16 @@ fun MehrTab(state: UiState, vm: SchwimmgruppenViewModel) {
                 }
                 Switch(checked = e.gesundheitAnzeigen, onCheckedChange = { vm.einstellungen(e.copy(gesundheitAnzeigen = it)) })
             }
+        }
+        Abschnitt("Wettkampfmeldungen") {
+            OutlinedButton(onClick = { vm.oeffnen(Ansicht.Wettkampf) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Ausschreibung melden, Ergebnisse einlesen")
+            }
+            Eingabe("DSV-Vereinskennzahl", e.vereinsnummer, { vm.einstellungen(e.copy(vereinsnummer = it.filter(Char::isDigit).take(4))) }, typ = KeyboardType.Number, hilfe = "4-stellig, steht z. B. im DSV-Vereinsportal")
+            Auswahl("Landesverband", (1..18).toList(), e.landesverband, { LANDESVERBAENDE[it - 1] }, { vm.einstellungen(e.copy(landesverband = it)) })
+            Eingabe("Meldende Person (Nachname, Vorname)", e.meldenderName, { vm.einstellungen(e.copy(meldenderName = it)) })
+            Eingabe("E-Mail der meldenden Person", e.meldenderEmail, { vm.einstellungen(e.copy(meldenderEmail = it)) }, typ = KeyboardType.Email)
+            Eingabe("Telefon (optional)", e.meldenderTelefon, { vm.einstellungen(e.copy(meldenderTelefon = it)) }, typ = KeyboardType.Phone)
         }
         Abschnitt("Strecken für Zeiten") {
             Eingabe("Eine Strecke pro Zeile", strecken, { strecken = it; vm.einstellungen(e.copy(strecken = zeilen(it))) }, mehrzeilig = true)
@@ -92,3 +104,10 @@ fun MehrTab(state: UiState, vm: SchwimmgruppenViewModel) {
         )
     }
 }
+
+/** Die 18 Landesschwimmverbände im DSV, Nummer = Position + 1 (Anhang des DSV-Standards). */
+val LANDESVERBAENDE = listOf(
+    "1 Baden", "2 Bayern", "3 Berlin", "4 Brandenburg", "5 Bremen", "6 Hamburg", "7 Hessen", "8 Mecklenburg-Vorpommern",
+    "9 Niedersachsen", "10 Rheinland", "11 Saarland", "12 Sachsen", "13 Sachsen-Anhalt", "14 Schleswig-Holstein",
+    "15 Südwest", "16 Thüringen", "17 Nordrhein-Westfalen", "18 Württemberg",
+)

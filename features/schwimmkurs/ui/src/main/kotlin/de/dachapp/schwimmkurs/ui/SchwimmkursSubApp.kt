@@ -1,5 +1,7 @@
 package de.dachapp.schwimmkurs.ui
 
+import de.dachapp.module.AbzeichenPruefung
+import de.dachapp.module.Pruefling
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,6 +55,15 @@ object SchwimmkursSubApp : SubApp {
                         Ansicht.Import -> ImportScreen(state, vm)
                         Ansicht.Vorschlag -> VorschlagScreen(state, vm)
                         is Ansicht.EinladungVorschau -> EinladungVorschauScreen(a.familienSchluessel, state, vm)
+                        Ansicht.Zahlungsabgleich -> ZahlungsabgleichScreen(state, vm)
+                        is Ansicht.Pruefung -> state.bestand.kurs(a.kursId)?.let { kurs ->
+                            AbzeichenPruefung(
+                                titel = "Abzeichen · ${kurs.name}",
+                                prueflinge = kurs.teilnehmer.mapNotNull { state.bestand.kind(it) }.map { Pruefling(it.id, it.name, it.pruefung, it.abzeichen) },
+                                onBack = { vm.zurueck() },
+                                onSetzen = vm::pruefungSetzen,
+                            )
+                        }
                     }
                 }
                 if (state.ansicht == null) {

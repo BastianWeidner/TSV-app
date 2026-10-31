@@ -38,6 +38,8 @@ data class Kind(
     val ort: String = "",
     /** Abzeichen und sonstige Leistungen, Namen wie in [Einstellungen.abzeichen] oder frei. */
     val abzeichen: Set<String> = emptySet(),
+    /** Abzeichen-Prüfung: Abzeichen → Teilleistung → Datum (ISO), siehe Schwimmabzeichen in core. */
+    val pruefung: Map<String, Map<String, String>> = emptyMap(),
     @Serializable(LocalDateIso::class) val anmeldedatum: LocalDate? = null,
     val notiz: String = "",
     /** Feste Familienzuordnung. Leer = automatisch aus E-Mail bzw. Name und Adresse. */
@@ -162,6 +164,8 @@ data class Bestand(
     val einstellungen: Einstellungen = Einstellungen(),
     /** Familienschlüssel → Zeitpunkt, an dem die Einladung zuletzt geöffnet wurde (ISO). */
     val versendet: Map<String, String> = emptyMap(),
+    /** Familienschlüssel → Zahlungseingang (aus dem Kontoauszug oder von Hand). */
+    val zahlungen: Map<String, Zahlung> = emptyMap(),
 ) {
     fun kind(id: String): Kind? = kinder.firstOrNull { it.id == id }
     fun kurs(id: String): Kurs? = kurse.firstOrNull { it.id == id }

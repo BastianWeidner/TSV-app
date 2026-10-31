@@ -146,6 +146,9 @@ fun KursDetailScreen(id: String, state: UiState, vm: SchwimmkursViewModel) {
                     Text("Liste teilen")
                 }
             }
+            OutlinedButton(onClick = { vm.oeffnen(Ansicht.Pruefung(id)) }, enabled = teilnehmer.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
+                Text("Abzeichen prüfen")
+            }
             TextButton(onClick = { loeschen = true }, modifier = Modifier.fillMaxWidth()) { Text("Kurs löschen") }
         },
     ) {

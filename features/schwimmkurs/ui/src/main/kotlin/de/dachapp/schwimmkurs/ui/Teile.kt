@@ -7,7 +7,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
@@ -42,3 +46,21 @@ fun datumWaehlen(context: Context, start: LocalDate, onWahl: (LocalDate) -> Unit
 
 fun datumOderNull(text: String): LocalDate? =
     if (text.isBlank()) null else de.dachapp.schwimmkurs.logic.KinderImport.datum(text)
+
+/** GiroCode zum Vorzeigen, z. B. für Eltern in der Halle; immer schwarz auf weiß, damit Kameras ihn lesen. */
+@Composable
+fun GiroCodeBild(inhalt: String, modifier: Modifier = Modifier) {
+    val m = remember(inhalt) { de.dachapp.schwimmkurs.logic.GiroCode.matrix(inhalt) }
+    androidx.compose.foundation.Canvas(
+        modifier.size(180.dp).background(androidx.compose.ui.graphics.Color.White).padding(12.dp),
+    ) {
+        val modul = size.minDimension / m.size
+        for (y in m.indices) for (x in m[y].indices) if (m[y][x]) {
+            drawRect(
+                androidx.compose.ui.graphics.Color.Black,
+                topLeft = androidx.compose.ui.geometry.Offset(x * modul, y * modul),
+                size = androidx.compose.ui.geometry.Size(modul + 0.5f, modul + 0.5f),
+            )
+        }
+    }
+}

@@ -105,5 +105,8 @@ private fun Bildschirm(state: UiState, vm: SchwimmgruppenViewModel, breit: Boole
         Ansicht.Statistik -> StatistikScreen(state, vm)
         Ansicht.Trainer -> TrainerListeScreen(state, vm)
         Ansicht.Import -> ImportScreen(state, vm)
+        Ansicht.Uhr -> UhrScreen(state, vm)
+        Ansicht.Wettkampf -> WettkampfScreen(state, vm)
+        is Ansicht.Pruefung -> PruefungScreen(a.gruppeId, state, vm)
     }
 }

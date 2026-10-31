@@ -72,6 +72,8 @@ data class Mitglied(
     /** "w", "m", "d" oder leer. */
     val geschlecht: String = "",
     val mitgliedsnummer: String = "",
+    /** 6-stellige DSV-ID für Wettkampfmeldungen, leer = unbekannt. */
+    val dsvId: String = "",
     val email: String = "",
     val telefon: String = "",
     val strasse: String = "",
@@ -90,6 +92,8 @@ data class Mitglied(
     /** Z. B. "nur Heimwettkämpfe" oder "ab Sommer". */
     val interesseNotiz: String = "",
     val erfolge: List<Erfolg> = emptyList(),
+    /** Abzeichen-Prüfung: Abzeichen → Teilleistung → Datum (ISO), siehe Schwimmabzeichen in core. */
+    val pruefung: Map<String, Map<String, String>> = emptyMap(),
     val zeiten: List<Zeit> = emptyList(),
     /** false = ausgetreten oder ruhend; bleibt mit Verlauf erhalten, erscheint aber nicht mehr in Gruppen. */
     val aktiv: Boolean = true,
@@ -200,6 +204,12 @@ data class Einstellungen(
     val gesundheitAnzeigen: Boolean = true,
     val strecken: List<String> = Vorgaben.STRECKEN,
     val abzeichen: List<String> = Vorgaben.ABZEICHEN,
+    /** Für Wettkampfmeldungen: 4-stellige DSV-Vereinskennzahl, Landesschwimmverband (2 = Bayern), meldende Person. */
+    val vereinsnummer: String = "",
+    val landesverband: Int = 2,
+    val meldenderName: String = "",
+    val meldenderEmail: String = "",
+    val meldenderTelefon: String = "",
 )
 
 @Serializable

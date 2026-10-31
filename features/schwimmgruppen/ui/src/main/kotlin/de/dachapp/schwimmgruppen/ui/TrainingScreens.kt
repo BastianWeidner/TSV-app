@@ -92,9 +92,11 @@ fun TrainingTab(state: UiState, vm: SchwimmgruppenViewModel) {
         bottom = {
             BigButton("Hallenmodus", { vm.oeffnen(Ansicht.Halle) })
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { vm.oeffnen(Ansicht.Uhr) }, modifier = Modifier.weight(1f)) { Text("Trainingsuhr") }
                 OutlinedButton(onClick = { vm.oeffnen(Ansicht.Statistik) }, modifier = Modifier.weight(1f)) { Text("Statistik") }
                 OutlinedButton(onClick = { zusatz = true }, modifier = Modifier.weight(1f)) { Text("Zusatztermin") }
             }
+            OutlinedButton(onClick = { vm.oeffnen(Ansicht.Pruefung(null)) }, modifier = Modifier.fillMaxWidth()) { Text("Abzeichen prüfen") }
         },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -222,6 +224,8 @@ fun HalleScreen(state: UiState, vm: SchwimmgruppenViewModel, breit: Boolean) {
         TextButton(onClick = { tag = datum.minusDays(1).toString(); gewaehlt = null }) { Text("‹") }
         TextButton(onClick = { tag = LocalDate.now().toString(); gewaehlt = vm.jetzt()?.schluessel }) { Text("Heute") }
         TextButton(onClick = { tag = datum.plusDays(1).toString(); gewaehlt = null }) { Text("›") }
+        TextButton(onClick = { vm.oeffnen(Ansicht.Uhr) }) { Text("⏱ Uhr") }
+        TextButton(onClick = { vm.oeffnen(Ansicht.Pruefung(e?.gruppeId)) }) { Text("🏅") }
     }) {
         if (heute.isEmpty()) {
             Leer("An diesem Tag ist kein Training geplant. Über „Zusatztermin“ im Kalender lässt sich eines anlegen.")

@@ -405,6 +405,7 @@ fun SchwimmerBearbeitenScreen(id: String?, state: UiState, vm: SchwimmgruppenVie
     var geburt by remember(state.ladeNummer) { mutableStateOf(alt?.geburtsdatum?.format(DATUM).orEmpty()) }
     var geschlecht by remember(state.ladeNummer) { mutableStateOf(alt?.geschlecht.orEmpty()) }
     var nummer by remember(state.ladeNummer) { mutableStateOf(alt?.mitgliedsnummer.orEmpty()) }
+    var dsvId by remember(state.ladeNummer) { mutableStateOf(alt?.dsvId.orEmpty()) }
     var telefon by remember(state.ladeNummer) { mutableStateOf(alt?.telefon.orEmpty()) }
     var email by remember(state.ladeNummer) { mutableStateOf(alt?.email.orEmpty()) }
     var strasse by remember(state.ladeNummer) { mutableStateOf(alt?.strasse.orEmpty()) }
@@ -428,7 +429,7 @@ fun SchwimmerBearbeitenScreen(id: String?, state: UiState, vm: SchwimmgruppenVie
                 vm.mitgliedSpeichern(
                     basis.copy(
                         vorname = vorname.trim(), nachname = nachname.trim(), geburtsdatum = datumOderNull(geburt),
-                        geschlecht = geschlecht, mitgliedsnummer = nummer.trim(), telefon = telefon.trim(), email = email.trim(),
+                        geschlecht = geschlecht, mitgliedsnummer = nummer.trim(), dsvId = dsvId.filter(Char::isDigit), telefon = telefon.trim(), email = email.trim(),
                         strasse = strasse.trim(), plz = plz.trim(), ort = ort.trim(), eintritt = eintritt.trim(),
                         fotorechte = fotos, gesundheitserklaerung = gesundheit, interesseNotiz = interesseNotiz.trim(),
                         notiz = notiz.trim(), aktiv = aktiv,
@@ -447,6 +448,7 @@ fun SchwimmerBearbeitenScreen(id: String?, state: UiState, vm: SchwimmgruppenVie
             Auswahl("Gesundheitserklärung", listOf(null, true, false), gesundheit, ::janeinText, { gesundheit = it })
         }
         Eingabe("Wettkampf: Notiz", interesseNotiz, { interesseNotiz = it }, hilfe = "z. B. nur Heimwettkämpfe")
+        Eingabe("DSV-ID", dsvId, { dsvId = it.filter(Char::isDigit).take(7) }, typ = KeyboardType.Number, hilfe = "6-stellig, für Wettkampfmeldungen; wird beim Einlesen von Ergebnissen ergänzt")
         Eingabe("Telefon", telefon, { telefon = it }, typ = KeyboardType.Phone)
         Eingabe("E-Mail", email, { email = it }, typ = KeyboardType.Email)
         Eingabe("Straße", strasse, { strasse = it })

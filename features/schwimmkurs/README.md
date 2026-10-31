@@ -36,6 +36,19 @@ Verwaltung von Schwimmkursen für Kinder, komplett offline auf dem Gerät.
   Zahlungsfrist pro Kurs und die Regeln zu Fristen und Warteliste. Als PDF hängt eine Kursübersicht mit
   Termintabelle und Überweisungskasten an, dahinter die Haftungserklärung (ohne Unterschrift; mit der Überweisung gilt sie als anerkannt). „Mail öffnen“ übergibt alles an Gmail oder Outlook, dort nur noch Senden tippen.
   Die App merkt sich, welche Mails schon geöffnet wurden. Texte mit Platzhaltern in den Einstellungen.
+- **GiroCode:** Im PDF steht unter den Überweisungsdaten ein QR-Code (EPC-Standard). Eltern fotografieren ihn in
+  der Banking-App, Empfänger, IBAN, Betrag und Verwendungszweck sind dann ausgefüllt. Die Vorschau zeigt ihn auch
+  zum Vorzeigen. Ohne gültige IBAN (Prüfziffer) gibt es keinen Code und einen Hinweis.
+- **Zahlungen:** Jede Einladung zeigt „Zahlung offen“ oder „Bezahlt am …“, von Hand abhakbar. „Kontoauszug
+  abgleichen“ liest den CSV-Export der Umsätze (Sparkasse, VR-Bank u. a.; Kopfzeile mit „Betrag“ wird gesucht,
+  Soll/Haben-Spalte wird beachtet) und ordnet Gutschriften über Kurskürzel, Nachname und Betrag den Familien zu.
+  Sichere Treffer sind angehakt, abweichende Beträge und unsichere Treffer werden markiert, Gutschriften, die
+  nach Schwimmkurs aussehen, aber nicht passen, stehen darunter. Gespeichert wird nur Datum und Betrag.
+- **Abzeichen prüfen:** Im Kurs unten „Abzeichen prüfen“. Abzeichen (Seepferdchen, Bronze, Silber, Gold nach Prüfungsordnung 2020) und
+  Teilleistung wählen, dann die Kinder antippen: abgehakt mit heutigem Datum, auch über mehrere Termine. „Übersicht“ zeigt
+  den Stand je Kind, Antippen klappt alle Teile auf. Sind alle Teile da, steht das Abzeichen beim Kind (Zurücknehmen nimmt es wieder weg). „Bestellliste Abzeichen“ listet
+  die bestandenen Abzeichen mit Datum zum Teilen. Katalog und Bildschirm liegen gemeinsam in core
+  (`Schwimmabzeichen.kt`, `AbzeichenPruefung.kt`).
 - **Teilnehmerliste** pro Kurs als CSV teilen (öffnet sich in Excel direkt richtig).
 - **Sicherung:** Alle Daten als eine Datei sichern und wieder einspielen. Im Android-Dateidialog kann man
   direkt Google Drive wählen, ohne dass die App eine Internet-Berechtigung braucht. Darauf lässt sich später
