@@ -38,6 +38,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -73,6 +74,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import de.dachapp.module.PersonendatenScreen
 import de.dachapp.module.SubApp
 import java.time.LocalTime
 import kotlinx.coroutines.Dispatchers
@@ -81,6 +83,12 @@ import kotlinx.coroutines.withContext
 
 /** Pseudo-ID der Sicherungsseite (keine Unter-App heißt so). */
 private const val SICHERUNG = "__sicherung"
+
+/** Pseudo-ID der Profilseite (gemeinsame Personendaten). */
+private const val PROFIL = "__profil"
+
+/** Unter-Apps, die Personendaten nutzen; nur wenn eine davon dabei ist, gibt es das Profil in der Übersicht. */
+private val NUTZEN_PERSONENDATEN = setOf("tracker", "krafttraining")
 
 /** Kurzer Name klein unter jeder Kachel; Beschreibung und Langtext gibt es nur über das „i“. */
 private const val NAME_UNTER_KACHEL = true
@@ -107,7 +115,17 @@ fun DachApp(modules: List<SubApp>, start: String? = null, startNr: Int = 0) {
         label = "Unter-App",
     ) { id ->
         val open = modules.firstOrNull { it.id == id }
-        if (id == SICHERUNG) {
+        if (id == PROFIL) {
+            Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Box(Modifier.fillMaxSize().background(farbSchimmer()).safeDrawingPadding()) {
+                    BackHandler { openId = null }
+                    PersonendatenScreen(
+                        onBack = { openId = null },
+                        nutzer = modules.filter { it.id in NUTZEN_PERSONENDATEN }.joinToString(" und ") { it.title },
+                    )
+                }
+            }
+        } else if (id == SICHERUNG) {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 Box(Modifier.fillMaxSize().background(farbSchimmer()).safeDrawingPadding()) {
                     SicherungScreen(modules, onBack = { openId = null })
@@ -127,7 +145,10 @@ fun DachApp(modules: List<SubApp>, start: String? = null, startNr: Int = 0) {
         } else {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 Box(Modifier.safeDrawingPadding()) {
-                    Overview(modules, onOpen = { openId = it.id }, onSicherung = { openId = SICHERUNG })
+                    Overview(
+                        modules, onOpen = { openId = it.id }, onSicherung = { openId = SICHERUNG },
+                        onProfil = if (modules.any { it.id in NUTZEN_PERSONENDATEN }) ({ openId = PROFIL }) else null,
+                    )
                 }
             }
         }
@@ -157,7 +178,7 @@ private fun gruss(): String = when (LocalTime.now().hour) {
 }
 
 @Composable
-private fun Overview(modules: List<SubApp>, onOpen: (SubApp) -> Unit, onSicherung: () -> Unit) {
+private fun Overview(modules: List<SubApp>, onOpen: (SubApp) -> Unit, onSicherung: () -> Unit, onProfil: (() -> Unit)? = null) {
     val context = LocalContext.current
     val speicher = remember(context) { Ausgeblendet(context.applicationContext) }
     var ausgeblendet by remember { mutableStateOf(speicher.laden()) }
@@ -194,6 +215,11 @@ private fun Overview(modules: List<SubApp>, onOpen: (SubApp) -> Unit, onSicherun
                             color = MaterialTheme.colorScheme.primary,
                         )
                         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge)
+                    }
+                    if (onProfil != null) {
+                        FilledTonalIconButton(onClick = onProfil, modifier = Modifier.padding(end = 8.dp)) {
+                            Icon(Icons.Outlined.Person, contentDescription = "Profil (Körperdaten)")
+                        }
                     }
                     FilledTonalIconButton(onClick = onSicherung, modifier = Modifier.padding(end = 8.dp)) {
                         Icon(Icons.Outlined.Backup, contentDescription = "Sicherung")
