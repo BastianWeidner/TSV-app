@@ -4,7 +4,7 @@ Android-App der Schwimmabteilung mit drei Teilen: **Schwimmkurs**, **Schwimmgrup
 Sie läuft komplett offline (keine Internet-Berechtigung, keine weiteren Berechtigungen) und speichert alles nur auf dem Gerät.
 
 - App-ID `de.dachapp.schwimmen`, Name „Schwimmen“
-- Aktuelle Version: **1.19.0** (versionCode 43)
+- Aktuelle Version: **1.20.0** (versionCode 44)
 - Fertige APKs: Ordner [`apk/`](apk/), neueste Datei installieren (Updates lassen sich direkt über die alte Version installieren)
 
 ## Aufbau
