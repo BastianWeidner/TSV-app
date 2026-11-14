@@ -38,6 +38,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
@@ -101,7 +102,9 @@ private const val NAME_UNTER_KACHEL = true
 fun DachApp(modules: List<SubApp>, start: String? = null, startNr: Int = 0) {
     var openId by rememberSaveable { mutableStateOf<String?>(null) }
     // Aus einer Benachrichtigung oder einem Widget geöffnet: gleich die passende Unter-App zeigen.
-    LaunchedEffect(start, startNr) { if (start != null && modules.any { it.id == start }) openId = start }
+    LaunchedEffect(start, startNr) {
+        if (start != null && (modules.any { it.id == start } || (start == WOCHE && WochenWecker.aktiv(modules)))) openId = start
+    }
 
     AnimatedContent(
         targetState = openId,
@@ -115,7 +118,13 @@ fun DachApp(modules: List<SubApp>, start: String? = null, startNr: Int = 0) {
         label = "Unter-App",
     ) { id ->
         val open = modules.firstOrNull { it.id == id }
-        if (id == PROFIL) {
+        if (id == WOCHE) {
+            Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Box(Modifier.fillMaxSize().background(farbSchimmer()).safeDrawingPadding()) {
+                    WochenrueckblickScreen(modules, onBack = { openId = null })
+                }
+            }
+        } else if (id == PROFIL) {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 Box(Modifier.fillMaxSize().background(farbSchimmer()).safeDrawingPadding()) {
                     BackHandler { openId = null }
@@ -148,6 +157,7 @@ fun DachApp(modules: List<SubApp>, start: String? = null, startNr: Int = 0) {
                     Overview(
                         modules, onOpen = { openId = it.id }, onSicherung = { openId = SICHERUNG },
                         onProfil = if (modules.any { it.id in NUTZEN_PERSONENDATEN }) ({ openId = PROFIL }) else null,
+                        onWoche = if (WochenWecker.aktiv(modules)) ({ openId = WOCHE }) else null,
                     )
                 }
             }
@@ -178,7 +188,9 @@ private fun gruss(): String = when (LocalTime.now().hour) {
 }
 
 @Composable
-private fun Overview(modules: List<SubApp>, onOpen: (SubApp) -> Unit, onSicherung: () -> Unit, onProfil: (() -> Unit)? = null) {
+private fun Overview(
+    modules: List<SubApp>, onOpen: (SubApp) -> Unit, onSicherung: () -> Unit, onProfil: (() -> Unit)? = null, onWoche: (() -> Unit)? = null,
+) {
     val context = LocalContext.current
     val speicher = remember(context) { Ausgeblendet(context.applicationContext) }
     var ausgeblendet by remember { mutableStateOf(speicher.laden()) }
@@ -216,6 +228,11 @@ private fun Overview(modules: List<SubApp>, onOpen: (SubApp) -> Unit, onSicherun
                         )
                         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge)
                     }
+                    if (onWoche != null) {
+                        FilledTonalIconButton(onClick = onWoche, modifier = Modifier.padding(end = 8.dp)) {
+                            Icon(Icons.Outlined.Insights, contentDescription = "Wochenrückblick")
+                        }
+                    }
                     if (onProfil != null) {
                         FilledTonalIconButton(onClick = onProfil, modifier = Modifier.padding(end = 8.dp)) {
                             Icon(Icons.Outlined.Person, contentDescription = "Profil (Körperdaten)")
@@ -229,9 +246,18 @@ private fun Overview(modules: List<SubApp>, onOpen: (SubApp) -> Unit, onSicherun
                     }
                 }
             }
-            if (heute.isNotEmpty()) {
+            // Sonntags und montags lädt ein Chip vorn in der Heute-Zeile zum Wochenrückblick ein.
+            val rueckblickTag = onWoche != null && java.time.LocalDate.now().dayOfWeek.let { it == java.time.DayOfWeek.SUNDAY || it == java.time.DayOfWeek.MONDAY }
+            if (heute.isNotEmpty() || rueckblickTag) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (rueckblickTag && onWoche != null) {
+                            AssistChip(
+                                onClick = onWoche,
+                                label = { Text("Dein Wochenrückblick", maxLines = 1) },
+                                leadingIcon = { Icon(Icons.Outlined.Insights, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
+                            )
+                        }
                         heute.forEach { (m, text) ->
                             val info = ModulInfos.zu(m.id, m.description)
                             AssistChip(

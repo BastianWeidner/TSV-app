@@ -29,4 +29,11 @@ interface SubApp {
      * null, wenn heute nichts ansteht. Läuft im Hintergrund und liest nur, darf also keine Oberfläche anfassen.
      */
     fun heute(context: Context): String? = null
+
+    /**
+     * Beitrag zum Wochenrückblick für die Woche ab [montag] (bis zum Wochenende, in der laufenden Woche bis [jetzt]);
+     * null, wenn die Unter-App nichts beiträgt oder in der Woche nichts passiert ist. Läuft im Hintergrund und liest
+     * nur, siehe [Wochenrueckblick].
+     */
+    fun woche(context: Context, montag: java.time.LocalDate, jetzt: Long): Wochenbeitrag? = null
 }

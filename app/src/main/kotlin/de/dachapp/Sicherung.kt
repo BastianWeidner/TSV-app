@@ -54,7 +54,7 @@ object Sicherungsgruppen {
         "tracker.json" to "tracker", "tracker.xml" to "tracker",
         "brennholz.json" to "brennholz", "brennholz-fotos" to "brennholz",
         "krafttraining.json" to "krafttraining",
-        "nachlegen.json" to "nachlegen",
+        "nachlegen.json" to "brennholz",
         "camper.json" to "camper", "camper-fotos" to "camper",
         "wartung.json" to "wartung", "wartung-belege" to "wartung",
         "karten.json" to "karten",

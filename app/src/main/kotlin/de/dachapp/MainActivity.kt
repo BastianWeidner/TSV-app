@@ -18,6 +18,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Täglichen Sicherungs-Job wieder einplanen, falls er nach einem Neustart fehlt.
         de.dachapp.module.Gesamtsicherung.planen(applicationContext)
+        // Sonntags-Wecker des Wochenrückblicks (nur „alle“ und „gym“; „schwimmen“ hat keine Quelle und plant nichts).
+        WochenWecker.planen(applicationContext)
         if (savedInstanceState == null) uebernehmen(intent)
         setContent {
             DachTheme(VariantenInfos.grundfarbe) {
