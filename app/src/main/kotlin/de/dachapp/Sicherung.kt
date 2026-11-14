@@ -49,6 +49,7 @@ object Sicherungsgruppen {
         "schwimmkurs.json" to "schwimmkurs",
         "schwimmgruppen.json" to "schwimmgruppen", "schwimmgruppen-abgleich.json" to "schwimmgruppen",
         "schwimmleitung.json" to "schwimmleitung",
+        "vereinsmeisterschaft.json" to "vereinsmeisterschaft",
         "cafe-bastian.json" to "cafe",
         "einkauf.json" to "einkauf", "einkauf-intern.xml" to "einkauf",
         "tracker.json" to "tracker", "tracker.xml" to "tracker",

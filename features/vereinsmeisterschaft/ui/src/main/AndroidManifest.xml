@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Keine Berechtigungen: Fotos der Zeitzettel kommen über die Kamera-App (TakePicture) oder die Galerie.
+         ML Kit (Texterkennung über core/scanner) bringt INTERNET und ACCESS_NETWORK_STATE für Nutzungsstatistik mit;
+         die Schwimm-App bleibt ohne Internet, darum werden sie hier wieder entfernt. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
+
+    <application>
+        <!-- Gibt erzeugte PDFs an die gewählte App frei und nimmt Kamerafotos der Zeitzettel entgegen. Eigene Unterklasse,
+             weil andere Module schon FileProvider-Einträge haben (Manifest-Merger). -->
+        <provider
+            android:name="de.dachapp.vereinsmeisterschaft.ui.VmDateiProvider"
+            android:authorities="${applicationId}.vereinsmeisterschaft.dateien"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/vereinsmeisterschaft_dateien" />
+        </provider>
+    </application>
+</manifest>

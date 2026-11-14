@@ -1,10 +1,10 @@
 # TSV-App „Schwimmen“
 
-Android-App der Schwimmabteilung mit drei Teilen: **Schwimmkurs**, **Schwimmgruppen** und **Schwimmleitung**.
+Android-App der Schwimmabteilung mit vier Teilen: **Schwimmkurs**, **Schwimmgruppen**, **Schwimmleitung** und **Vereinsmeisterschaft**.
 Sie läuft komplett offline (keine Internet-Berechtigung, keine weiteren Berechtigungen) und speichert alles nur auf dem Gerät.
 
 - App-ID `de.dachapp.schwimmen`, Name „Schwimmen“
-- Aktuelle Version: **1.23.0** (versionCode 50)
+- Aktuelle Version: **1.24.0** (versionCode 51)
 - Fertige APKs: Ordner [`apk/`](apk/), neueste Datei installieren (Updates lassen sich direkt über die alte Version installieren)
 
 ## Aufbau
@@ -13,10 +13,12 @@ Sie läuft komplett offline (keine Internet-Berechtigung, keine weiteren Berecht
 |---|---|
 | `app/` | App-Rahmen (Übersicht, Design, Varianten-Infos), Variante `schwimmen` |
 | `core/module-api/` | gemeinsame Schnittstelle der Unter-Apps und Oberflächen-Bausteine |
+| `core/scanner/` | Kamera und Texterkennung auf dem Gerät (Zeitzettel abfotografieren) |
 | `core/abgleich/` | Abgleich von Daten zwischen Geräten (z. B. Teilen zwischen Trainern) |
 | `features/schwimmkurs/` | Schwimmkurs: Anmeldungen, Einladungen, Teilnehmer |
 | `features/schwimmgruppen/` | Schwimmgruppen: Gruppen, Zeiten, Mitgliederliste |
 | `features/schwimmleitung/` | Schwimmleitung |
+| `features/vereinsmeisterschaft/` | Vereinsmeisterschaft: Läufe, Zeiten, Wertung, Urkunden und Ergebnisliste als PDF |
 | `testdaten/` | Beispieldaten zum Ausprobieren |
 
 Jede Unter-App hat `logic/` (reines Kotlin mit Tests) und `ui/` (Jetpack Compose).

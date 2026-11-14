@@ -4,6 +4,7 @@ import de.dachapp.module.SubApp
 import de.dachapp.schwimmgruppen.ui.SchwimmgruppenSubApp
 import de.dachapp.schwimmkurs.ui.SchwimmkursSubApp
 import de.dachapp.schwimmleitung.ui.SchwimmleitungSubApp
+import de.dachapp.vereinsmeisterschaft.ui.VereinsmeisterschaftSubApp
 
 /** Variante "schwimmen": nur die Unter-Apps der Schwimmabteilung, in der Reihenfolge der Übersicht. */
 object ModuleRegistry {
@@ -11,6 +12,7 @@ object ModuleRegistry {
         SchwimmkursSubApp,
         SchwimmgruppenSubApp,
         SchwimmleitungSubApp,
+        VereinsmeisterschaftSubApp,
     )
 
     init {

@@ -125,7 +125,8 @@ object Wettkampfabgleich {
     fun zuordnen(liste: Ergebnisliste, b: Bestand, vereinsnummer: String, vereinsname: String): List<ErgebnisTreffer> {
         val nummer = vereinsnummer.trim().trimStart('0')
         val namensteil = norm(vereinsname).split(' ').filter { it.length >= 4 && it !in setOf("abteilung", "schwimmen", "verein") }
-        val eigene = liste.ergebnisse.filter { e ->
+        // Ohne Vereinsangaben (z. B. Datei aus der Vereinsmeisterschaft) alle prüfen; zugeordnet wird ohnehin nur ein Mitglied.
+        val eigene = if (nummer.isEmpty() && namensteil.isEmpty()) liste.ergebnisse else liste.ergebnisse.filter { e ->
             (nummer.isNotEmpty() && e.vereinsnummer.trim().trimStart('0') == nummer) ||
                 (namensteil.isNotEmpty() && namensteil.any { norm(e.verein).contains(it) })
         }

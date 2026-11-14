@@ -20,8 +20,8 @@ android {
         applicationId = "de.dachapp"
         minSdk = 29
         targetSdk = 35
-        versionCode = 50
-        versionName = "1.23.0"
+        versionCode = 51
+        versionName = "1.24.0"
     }
 
     // Einzige Variante "schwimmen" (App-ID de.dachapp.schwimmen): Schwimmkurs, Schwimmgruppen, Schwimmleitung.
@@ -31,6 +31,8 @@ android {
         create("schwimmen") {
             dimension = "umfang"
             applicationIdSuffix = ".schwimmen"
+            // Texterkennung (Vereinsmeisterschaft) bringt native Bibliotheken mit; 64- und 32-Bit-ARM reichen für Handys.
+            ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
         }
     }
 
@@ -86,6 +88,8 @@ dependencies {
     implementation(project(":features:schwimmkurs:ui"))
     implementation(project(":features:schwimmgruppen:ui"))
     implementation(project(":features:schwimmleitung:ui"))
+    // Vereinsmeisterschaft gehört zum Schwimmverein: „alle“ und „schwimmen“, nicht „gym“.
+    "schwimmenImplementation"(project(":features:vereinsmeisterschaft:ui"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

@@ -2,6 +2,7 @@ package de.dachapp
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Pool
@@ -33,6 +34,12 @@ object ModulInfos {
             "Werkzeug für die Abteilungsleitung. Ohne PIN können Trainer in der Halle Defekte, Vorkommnisse und Belege " +
                 "melden. Mit Leitungs-PIN: Kennzahlen und Leitungsbericht, Protokolle, Aufgaben, Material, Belege und " +
                 "Scheine. Mehrere Geräte gleichen sich über eine Datei in Google Drive ab.",
+        ),
+        "vereinsmeisterschaft" to ModulInfo(
+            Icons.Filled.EmojiEvents, Color(0xFFC62828),
+            "Vereinsmeisterschaft auswerten. Teilnehmer aus den Schwimmgruppen oder einer Meldeliste holen, Läufe nach " +
+                "Jahrgang und Meldezeit einteilen, Zeiten eintippen, stoppen oder vom Zeitzettel abfotografieren. Wertung je " +
+                "Jahrgang und Geschlecht, Pokale nach Zeitpunkten, Urkunden und Ergebnisliste als PDF, Zeiten zurück an die Schwimmgruppen.",
         ),
     )
 
