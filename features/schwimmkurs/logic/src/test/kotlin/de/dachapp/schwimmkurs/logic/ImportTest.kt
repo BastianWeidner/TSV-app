@@ -139,27 +139,27 @@ class ImportTest {
         val t = Tabelle(
             listOf("Name", "Geburtsdatum", "E-Mail", "Einschulung", "Kommentar"),
             listOf(
-                listOf("Wagner Linus", "21.11.2021", "fam.w@x.de", "2028", "KiGa Willmatshofen"),
-                listOf("Wagner Felix", "30.05.2024", "fam.w@x.de", "2030", ""),
-                listOf("Hampf Thea", "30.10.2019", "tom.hampf@x.de", "", ""),
-                listOf("Gütinger Gabriel", "12.10.2020", "ursula.guetinger@x.de", "", ""),
-                listOf("Spengler Toni", "09.02.2021", "melli.blank@x.de", "", ""),
-                listOf("Anna Maria Huber", "01.01.2020", "a@x.de", "", ""),
-                listOf("Ramona Jakob", "25.09.2019", "jakob@x.de", "", "Beide Jakobgeschwister nicht in die selbe Gruppe."),
-                listOf("", "22.09.2016", "leer@x.de", "", "Fischach"),
+                listOf("Demo Linus", "01.01.2021", "fam.demo@x.de", "2028", "KiGa Musterdorf"),
+                listOf("Demo Felix", "01.01.2024", "fam.demo@x.de", "2030", ""),
+                listOf("Mustermann Thea", "02.02.2019", "max.mustermann@x.de", "", ""),
+                listOf("Tästperson Gabriel", "03.03.2020", "erika.taestperson@x.de", "", ""),
+                listOf("Testkind Toni", "04.04.2021", "demo.eltern@x.de", "", ""),
+                listOf("Anna Maria Beispiel", "05.05.2020", "a@x.de", "", ""),
+                listOf("Paula Jakob", "06.06.2019", "jakob@x.de", "", "Beide Jakobgeschwister nicht in die selbe Gruppe."),
+                listOf("", "01.01.2016", "leer@x.de", "", "Musterdorf"),
             ),
         )
         val e = KinderImport.importieren(t, KinderImport.vorschlagen(t.kopf, stufen), emptyList(), stufen)
         val namen = e.kinder.map { it.vorname to it.nachname }
         assertEquals(
             listOf(
-                "Linus" to "Wagner", "Felix" to "Wagner", "Thea" to "Hampf", "Gabriel" to "Gütinger",
-                "Toni" to "Spengler", "Anna Maria" to "Huber", "Ramona" to "Jakob",
+                "Linus" to "Demo", "Felix" to "Demo", "Thea" to "Mustermann", "Gabriel" to "Tästperson",
+                "Toni" to "Testkind", "Anna Maria" to "Beispiel", "Paula" to "Jakob",
             ),
             namen,
         )
         assertEquals("2028", e.kinder[0].einschulung)
-        assertTrue(e.kinder.single { it.vorname == "Ramona" }.geschwisterGetrennt)
+        assertTrue(e.kinder.single { it.vorname == "Paula" }.geschwisterGetrennt)
         assertTrue(e.hinweise.any { "kein Name" in it && "leer@x.de" in it })
     }
 
