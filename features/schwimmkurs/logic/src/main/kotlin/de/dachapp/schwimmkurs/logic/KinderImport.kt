@@ -266,8 +266,8 @@ object KinderImport {
      * Teilt Namen aus einer gemeinsamen Spalte, in der mal "Vorname Nachname", mal "Nachname Vorname" steht.
      * Schlüssel ist ein beliebiger Index, Wert ist (Name, E-Mail). Entscheidung je Name:
      * 1. Geschwister (gleiche E-Mail) teilen sich ein Wort am Anfang oder am Ende: das ist der Nachname.
-     * 2. Das erste oder letzte Wort steckt in der E-Mail-Adresse (z. B. tom.hampf@… bei „Hampf Thea“).
-     * 3. Nur das letzte Wort ist ein bekannter Vorname („Spengler Toni“).
+     * 2. Das erste oder letzte Wort steckt in der E-Mail-Adresse (z. B. max.mustermann@… bei „Mustermann Thea“).
+     * 3. Nur das letzte Wort ist ein bekannter Vorname („Testkind Toni“).
      * 4. Sonst "Vorname Nachname".
      */
     fun namenTeilen(namen: Map<Int, Pair<String, String>>): Map<Int, Pair<String, String>> {
