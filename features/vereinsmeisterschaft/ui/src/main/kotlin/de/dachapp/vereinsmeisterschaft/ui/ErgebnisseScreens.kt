@@ -93,10 +93,10 @@ fun ErgebnisseSeite(v: Veranstaltung, logo: String?, meldung: (String) -> Unit) 
         item {
             FlowRow(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = {
-                    pdf("Urkunden ${v.titel}") { Druck.urkunden(it, v, Wertung.urkunden(v), Wertung.punkteurkunden(v), v.staffeln, Dateien.logo(logo)) }
+                    pdf("Urkunden ${v.titel}") { Druck.urkunden(it, v, Wertung.urkunden(v), Wertung.punkteurkunden(v), v.staffeln, Dateien.logo(context, logo)) }
                 }) { Text("Alle Urkunden PDF") }
                 OutlinedButton(onClick = {
-                    pdf("Punkteurkunden ${v.titel}") { Druck.urkunden(it, v, emptyList(), Wertung.punkteurkunden(v), emptyList(), Dateien.logo(logo)) }
+                    pdf("Punkteurkunden ${v.titel}") { Druck.urkunden(it, v, emptyList(), Wertung.punkteurkunden(v), emptyList(), Dateien.logo(context, logo)) }
                 }) { Text("Punkteurkunden") }
                 OutlinedButton(onClick = { pdf("Ergebnisliste ${v.titel}") { Druck.ergebnisliste(it, v) } }) { Text("Ergebnisliste PDF") }
                 OutlinedButton(onClick = { import.launch(arrayOf("*/*")) }) { Text("Zeiten importieren") }

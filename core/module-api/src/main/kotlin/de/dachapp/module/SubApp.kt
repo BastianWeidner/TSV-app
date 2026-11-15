@@ -36,4 +36,11 @@ interface SubApp {
      * nur, siehe [Wochenrueckblick].
      */
     fun woche(context: Context, montag: java.time.LocalDate, jetzt: Long): Wochenbeitrag? = null
+
+    /**
+     * Beitrag zum Rückblick für einen beliebigen [zeitraum] (Woche, Monat, Quartal, Halbjahr, Jahr). Ohne eigene
+     * Umsetzung gibt es nur den Wochenbeitrag aus [woche]. Läuft im Hintergrund und liest nur.
+     */
+    fun rueckblick(context: Context, zeitraum: Zeitraum, jetzt: Long): Wochenbeitrag? =
+        if (zeitraum.art == Rueckblickart.WOCHE) woche(context, zeitraum.von, jetzt) else null
 }

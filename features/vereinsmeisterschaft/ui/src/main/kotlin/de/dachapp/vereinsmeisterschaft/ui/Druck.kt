@@ -15,6 +15,9 @@ import de.dachapp.vereinsmeisterschaft.logic.Urkunde
 import de.dachapp.vereinsmeisterschaft.logic.Veranstaltung
 import de.dachapp.vereinsmeisterschaft.logic.Wertung
 import de.dachapp.vereinsmeisterschaft.logic.Zeit
+import de.dachapp.vereinsmeisterschaft.logic.ZettelGruppe
+import de.dachapp.vereinsmeisterschaft.logic.ZettelZeile
+import de.dachapp.vereinsmeisterschaft.logic.Zeitdatei
 import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -38,8 +41,7 @@ object Druck {
     private val serifFett = Typeface.create(Typeface.SERIF, Typeface.BOLD)
     private val sans = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
     private val sansFett = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-    private val mono = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-
+    
     private fun stift(groesse: Float, schrift: Typeface = sans, farbe: Int = SCHWARZ, ausrichtung: Paint.Align = Paint.Align.LEFT) =
         Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = groesse; typeface = schrift; color = farbe; textAlign = ausrichtung }
 
@@ -97,7 +99,7 @@ object Druck {
         val l = linie(GRAU, 0.8f)
         c.drawLine(80f, y, 250f, y, l)
         c.drawLine(B - 250f, y, B - 80f, y, l)
-        c.drawText("Ort, Datum", 165f, y + 15f, stift(10f, sans, GRAU, Paint.Align.CENTER))
+        c.drawText(v.unterschriftLinks, 165f, y + 15f, stift(10f, sans, GRAU, Paint.Align.CENTER))
         c.drawText(v.unterschrift, B - 165f, y + 15f, stift(10f, sans, GRAU, Paint.Align.CENTER))
     }
 
@@ -339,73 +341,108 @@ object Druck {
         speichern(doc, datei)
     }
 
-    /**
-     * Zeitzettel je Bahn: jede Zeile beginnt mit dem Kennzeichen „L03 B2“, das die Texterkennung sicher liest; rechts
-     * Kästchen für Minuten : Sekunden , Hundertstel. Auf der Zeile stehen sonst keine Ziffern.
-     */
-    fun zeitzettel(c: Canvas, v: Veranstaltung, bahn: Int, laeufe: List<de.dachapp.vereinsmeisterschaft.logic.Lauf>, seite: Int, seiten: Int) {
-        c.drawColor(Color.WHITE)
-        c.drawText("Zeitzettel Bahn $bahn", 40f, 54f, stift(22f, sansFett, BLAU))
-        c.drawText("${v.titel} · Blatt $seite/$seiten", B - 40f, 54f, stift(10f, sans, GRAU, Paint.Align.RIGHT))
-        c.drawText("Zeit in die Kästchen: Minuten : Sekunden , Hundertstel – eine Ziffer je Kästchen, Minuten leer lassen, wenn unter 1 Minute.", 40f, 74f, stift(8.5f, sans, GRAU))
-        c.drawText("Nicht angetreten: „na“, disqualifiziert: „dq“ rechts neben die Kästchen schreiben.", 40f, 86f, stift(8.5f, sans, GRAU))
-        var y = 120f
-        var strecke: de.dachapp.vereinsmeisterschaft.logic.Strecke? = null
-        val code = stift(16f, mono)
-        val name = stift(13f)
-        // Sehr helle Kästchen, damit die Texterkennung die Ränder nicht als Ziffer „1“ liest.
-        val kasten = linie(Color.rgb(205, 205, 205), 0.8f)
-        for (lauf in laeufe) {
-            if (lauf.strecke != strecke) {
-                strecke = lauf.strecke
-                y += 8f
-                c.drawText(lauf.strecke.text + if (lauf != laeufe.first() || seite == 1) "" else " (Fortsetzung)", 40f, y, stift(11f, sansFett, GRAU))
-                y += 26f
-            }
-            val t = lauf.auf(bahn)?.let { v.person(it) }
-            c.drawText("L%02d B%d".format(lauf.nr, bahn), 40f, y, code)
-            c.kuerzen(t?.name ?: "(frei)", 140f, y, if (t == null) stift(13f, sans, HELL) else name, 200f)
-            // Kästchen: [m] : [s][s] , [h][h]
-            var x = 350f
-            val w = 24f
-            fun box() { c.drawRoundRect(RectF(x, y - 22f, x + w, y + 8f), 3f, 3f, kasten); x += w + 4f }
-            box(); c.drawText(":", x + 1f, y, stift(16f, sansFett, GRAU)); x += 10f
-            box(); box(); c.drawText(",", x + 1f, y, stift(16f, sansFett, GRAU)); x += 10f
-            box(); box()
-            y += 46f
-        }
+    private const val ZETTEL_START = 78f
+    private const val ZETTEL_ENDE = H - 44f
+    private const val ZETTEL_KOPF = 30f
+    private const val ZETTEL_ZEILE = 17f
+
+    /** Ein Eintrag auf dem Zeitzettel: Kopf einer Stufe (ggf. Fortsetzung) oder ein Schwimmer. */
+    sealed interface ZettelTeil {
+        data class Kopf(val gruppe: ZettelGruppe, val weiter: Boolean) : ZettelTeil
+        data class Reihe(val gruppe: ZettelGruppe, val zeile: ZettelZeile, val neuerLauf: Boolean) : ZettelTeil
     }
 
-    /** Läufe einer Bahn, aufgeteilt auf Seiten (gleiche Höhen wie beim Zeichnen: Zeile 46, Streckenkopf 34). */
-    fun zettelSeiten(v: Veranstaltung, bahn: Int): List<List<de.dachapp.vereinsmeisterschaft.logic.Lauf>> {
-        val seiten = ArrayList<List<de.dachapp.vereinsmeisterschaft.logic.Lauf>>()
-        var akt = ArrayList<de.dachapp.vereinsmeisterschaft.logic.Lauf>()
-        var y = 120f
-        var strecke: de.dachapp.vereinsmeisterschaft.logic.Strecke? = null
-        for (lauf in v.laeufe.filter { it.auf(bahn) != null }) {
-            val kopf = if (lauf.strecke != strecke || akt.isEmpty()) 34f else 0f
-            if (akt.isNotEmpty() && y + kopf + 46f > H - 30f) {
-                seiten += akt; akt = ArrayList(); y = 120f
+    /**
+     * Zeitzettel kompakt (Bastian 2026-11-15): eine Zeile je Schwimmer, die Lagen nebeneinander, je Lage Lauf/Bahn und
+     * ein Feld für die Zeit. Gruppiert nach Stufe; eine Stufe läuft bei Bedarf mit „Fortsetzung“ aufs nächste Blatt.
+     */
+    fun zettelSeiten(v: Veranstaltung): List<List<ZettelTeil>> {
+        val seiten = ArrayList<List<ZettelTeil>>()
+        var akt = ArrayList<ZettelTeil>()
+        var y = ZETTEL_START
+        fun umbruch() { seiten += akt; akt = ArrayList(); y = ZETTEL_START }
+        for (g in Zeitdatei.gruppen(v)) {
+            if (akt.isNotEmpty()) y += 10f
+            if (y + ZETTEL_KOPF + 3 * ZETTEL_ZEILE > ZETTEL_ENDE) umbruch()
+            akt += ZettelTeil.Kopf(g, false); y += ZETTEL_KOPF
+            var lauf = -1
+            for (z in g.zeilen) {
+                if (y + ZETTEL_ZEILE > ZETTEL_ENDE) { umbruch(); akt += ZettelTeil.Kopf(g, true); y += ZETTEL_KOPF }
+                akt += ZettelTeil.Reihe(g, z, lauf != -1 && z.ersterLauf != lauf)
+                lauf = z.ersterLauf
+                y += ZETTEL_ZEILE
             }
-            y += (if (lauf.strecke != strecke || akt.isEmpty()) 34f else 0f) + 46f
-            strecke = lauf.strecke
-            akt += lauf
         }
         if (akt.isNotEmpty()) seiten += akt
         return seiten
     }
 
-    fun zeitzettel(datei: File, v: Veranstaltung) = PdfDocument().let { doc ->
-        var nr = 0
-        for (bahn in 1..v.regeln.bahnenImBecken) {
-            val seiten = zettelSeiten(v, bahn)
-            seiten.forEachIndexed { i, laeufe ->
-                val s = doc.startPage(PdfDocument.PageInfo.Builder(B.toInt(), H.toInt(), ++nr).create())
-                zeitzettel(s.canvas, v, bahn, laeufe, i + 1, seiten.size)
-                doc.finishPage(s)
+    fun zeitzettel(c: Canvas, v: Veranstaltung, teile: List<ZettelTeil>, seite: Int, seiten: Int) {
+        c.drawColor(Color.WHITE)
+        val links = 36f
+        val rechts = B - 36f
+        c.drawText("Zeitzettel", links, 44f, stift(16f, sansFett, BLAU))
+        c.drawText("${v.titel} · Blatt $seite/$seiten", rechts, 44f, stift(8f, sans, GRAU, Paint.Align.RIGHT))
+        c.drawText(
+            "Je Lage: Lauf/Bahn, daneben die Zeit (z. B. 45,30 oder 1:05,30). Nicht angetreten „n. a.“, disqualifiziert „disq.“.",
+            links, 58f, stift(7.5f, sans, GRAU),
+        )
+        val xJg = 196f
+        val xLagen = 226f
+        val klein = stift(6.5f, sansFett, GRAU).apply { letterSpacing = 0.05f }
+        val name = stift(9f)
+        val grau = stift(8f, sans, GRAU)
+        val lb = stift(6.5f, sans, GRAU)
+        val fein = linie(Color.rgb(225, 225, 225), 0.5f)
+        val laufLinie = linie(Color.rgb(150, 150, 150), 0.7f)
+        val kasten = linie(Color.rgb(160, 160, 160), 0.6f)
+        var y = ZETTEL_START
+        var erste = true
+        for (t in teile) when (t) {
+            is ZettelTeil.Kopf -> {
+                if (!erste) y += 10f
+                val g = t.gruppe
+                c.drawRect(RectF(links, y, rechts, y + 16f), Paint().apply { color = Color.rgb(232, 239, 247) })
+                c.drawText(g.titel + if (t.weiter) " (Fortsetzung)" else "", links + 4f, y + 11.5f, stift(9f, sansFett, BLAU))
+                val breite = (rechts - xLagen) / g.strecken.size.coerceAtLeast(1)
+                c.drawText("NAME", links + 4f, y + 26f, klein)
+                c.drawText("JG.", xJg, y + 26f, klein)
+                g.strecken.forEachIndexed { i, s -> c.drawText(s.text.uppercase(Locale.GERMANY), xLagen + i * breite + 2f, y + 26f, klein) }
+                y += ZETTEL_KOPF
+                c.drawLine(links, y - 1f, rechts, y - 1f, laufLinie)
             }
+            is ZettelTeil.Reihe -> {
+                val g = t.gruppe
+                val tn = t.zeile.teilnehmer
+                if (t.neuerLauf) c.drawLine(links, y, rechts, y, laufLinie)
+                val grund = y + 12f
+                c.kuerzen(tn.name, links + 4f, grund, name, xJg - links - 10f)
+                c.drawText(tn.jahrgang.toString(), xJg, grund, grau)
+                val breite = (rechts - xLagen) / g.strecken.size.coerceAtLeast(1)
+                g.strecken.forEachIndexed { i, s ->
+                    val x = xLagen + i * breite
+                    val p = t.zeile.plaetze[s.lage]
+                    if (p == null) c.drawText("–", x + 2f, grund, grau)
+                    else {
+                        c.drawText("${p.first}/${p.second}", x + 2f, grund, lb)
+                        c.drawRoundRect(RectF(x + 22f, y + 2.5f, x + breite - 6f, y + ZETTEL_ZEILE - 2.5f), 2f, 2f, kasten)
+                    }
+                }
+                y += ZETTEL_ZEILE
+                c.drawLine(links, y, rechts, y, fein)
+            }
+        }.also { erste = false }
+        c.drawText("Kampfrichter: ______________________", links, H - 24f, stift(8f, sans, GRAU))
+    }
+
+    fun zeitzettel(datei: File, v: Veranstaltung) = PdfDocument().let { doc ->
+        val seiten = zettelSeiten(v)
+        seiten.forEachIndexed { i, teile ->
+            val s = doc.startPage(PdfDocument.PageInfo.Builder(B.toInt(), H.toInt(), i + 1).create())
+            zeitzettel(s.canvas, v, teile, i + 1, seiten.size)
+            doc.finishPage(s)
         }
-        if (nr == 0) doc.startPage(PdfDocument.PageInfo.Builder(B.toInt(), H.toInt(), 1).create()).also { doc.finishPage(it) }
+        if (seiten.isEmpty()) doc.startPage(PdfDocument.PageInfo.Builder(B.toInt(), H.toInt(), 1).create()).also { doc.finishPage(it) }
         speichern(doc, datei)
     }
 

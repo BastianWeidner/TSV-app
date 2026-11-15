@@ -1,4 +1,4 @@
-// Vereinsmeisterschaft: Regeln, Läufe, Wertung, Punkte, Import und Scan-Auswertung als reines Kotlin, per Unit-Test prüfbar.
+// Vereinsmeisterschaft: Regeln, Läufe, Wertung, Punkte, Import und Zeiten-Datei als reines Kotlin, per Unit-Test prüfbar.
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)

@@ -103,7 +103,7 @@ fun DachApp(modules: List<SubApp>, start: String? = null, startNr: Int = 0) {
     var openId by rememberSaveable { mutableStateOf<String?>(null) }
     // Aus einer Benachrichtigung oder einem Widget geöffnet: gleich die passende Unter-App zeigen.
     LaunchedEffect(start, startNr) {
-        if (start != null && (modules.any { it.id == start } || (start == WOCHE && WochenWecker.aktiv(modules)))) openId = start
+        if (start != null && (modules.any { it.id == start } || (istRueckblick(start) && WochenWecker.aktiv(modules)))) openId = start
     }
 
     AnimatedContent(
@@ -118,10 +118,10 @@ fun DachApp(modules: List<SubApp>, start: String? = null, startNr: Int = 0) {
         label = "Unter-App",
     ) { id ->
         val open = modules.firstOrNull { it.id == id }
-        if (id == WOCHE) {
+        if (istRueckblick(id)) {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 Box(Modifier.fillMaxSize().background(farbSchimmer()).safeDrawingPadding()) {
-                    WochenrueckblickScreen(modules, onBack = { openId = null })
+                    WochenrueckblickScreen(modules, onBack = { openId = null }, start = rueckblickArt(id))
                 }
             }
         } else if (id == PROFIL) {
@@ -157,7 +157,7 @@ fun DachApp(modules: List<SubApp>, start: String? = null, startNr: Int = 0) {
                     Overview(
                         modules, onOpen = { openId = it.id }, onSicherung = { openId = SICHERUNG },
                         onProfil = if (modules.any { it.id in NUTZEN_PERSONENDATEN }) ({ openId = PROFIL }) else null,
-                        onWoche = if (WochenWecker.aktiv(modules)) ({ openId = WOCHE }) else null,
+                        onWoche = if (WochenWecker.aktiv(modules)) ({ a -> openId = if (a == null) WOCHE else rueckblickZiel(a) }) else null,
                     )
                 }
             }
@@ -189,7 +189,7 @@ private fun gruss(): String = when (LocalTime.now().hour) {
 
 @Composable
 private fun Overview(
-    modules: List<SubApp>, onOpen: (SubApp) -> Unit, onSicherung: () -> Unit, onProfil: (() -> Unit)? = null, onWoche: (() -> Unit)? = null,
+    modules: List<SubApp>, onOpen: (SubApp) -> Unit, onSicherung: () -> Unit, onProfil: (() -> Unit)? = null, onWoche: ((de.dachapp.module.Rueckblickart?) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val speicher = remember(context) { Ausgeblendet(context.applicationContext) }
@@ -229,8 +229,8 @@ private fun Overview(
                         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge)
                     }
                     if (onWoche != null) {
-                        FilledTonalIconButton(onClick = onWoche, modifier = Modifier.padding(end = 8.dp)) {
-                            Icon(Icons.Outlined.Insights, contentDescription = "Wochenrückblick")
+                        FilledTonalIconButton(onClick = { onWoche(null) }, modifier = Modifier.padding(end = 8.dp)) {
+                            Icon(Icons.Outlined.Insights, contentDescription = "Rückblick")
                         }
                     }
                     if (onProfil != null) {
@@ -246,15 +246,16 @@ private fun Overview(
                     }
                 }
             }
-            // Sonntags und montags lädt ein Chip vorn in der Heute-Zeile zum Wochenrückblick ein.
-            val rueckblickTag = onWoche != null && java.time.LocalDate.now().dayOfWeek.let { it == java.time.DayOfWeek.SUNDAY || it == java.time.DayOfWeek.MONDAY }
+            // Am letzten und ersten Tag eines Zeitraums (Woche: sonntags und montags) lädt ein Chip zum Rückblick ein.
+            val rueckblickArt = java.time.LocalDate.now().let { d -> (de.dachapp.module.Zeitraum.endenAm(d) + de.dachapp.module.Zeitraum.beginnenAm(d)).maxByOrNull { it.ordinal } }
+            val rueckblickTag = onWoche != null && rueckblickArt != null
             if (heute.isNotEmpty() || rueckblickTag) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (rueckblickTag && onWoche != null) {
                             AssistChip(
-                                onClick = onWoche,
-                                label = { Text("Dein Wochenrückblick", maxLines = 1) },
+                                onClick = { onWoche(rueckblickArt) },
+                                label = { Text("Dein ${rueckblickArt?.rueckblick ?: "Rückblick"}", maxLines = 1) },
                                 leadingIcon = { Icon(Icons.Outlined.Insights, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) },
                             )
                         }

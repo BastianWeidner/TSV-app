@@ -187,7 +187,10 @@ data class Veranstaltung(
     val datum: String = "",
     val ort: String = "",
     val verein: String = "TSV Fischach · Abteilung Schwimmen",
+    /** Unterschrift rechts auf den Urkunden. */
     val unterschrift: String = "Sportlicher Leiter",
+    /** Unterschrift links auf den Urkunden (Bastian 2026-11-15: Sportlicher Leiter und Abteilungsleitung). */
+    val unterschriftLinks: String = "Abteilungsleitung",
     /** Vereinskennzahl (DSV), nur für die Ergebnisdatei; leer = 0. */
     val vereinsnummer: String = "",
     val regeln: Regeln = Regeln(),

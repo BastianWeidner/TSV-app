@@ -22,7 +22,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.dachapp.module.Header
 import de.dachapp.module.MessageDialog
 import de.dachapp.module.SubApp
-import de.dachapp.vereinsmeisterschaft.logic.ScanTreffer
 import java.time.LocalDate
 
 /** Navigation innerhalb der Unter-App. */
@@ -31,7 +30,6 @@ sealed interface Ansicht {
     data class Person(val id: Long?) : Ansicht
     data object Mitgliederwahl : Ansicht
     data class Erfassen(val lauf: Int) : Ansicht
-    data class ScanPruefen(val treffer: List<ScanTreffer>, val foto: String) : Ansicht
     data object Regeln : Ansicht
     data object Veranstaltungen : Ansicht
     data object Staffeln : Ansicht
@@ -88,7 +86,6 @@ object VereinsmeisterschaftSubApp : SubApp {
                 is Ansicht.Person -> PersonBearbeiten(v, a.id, zurueck)
                 Ansicht.Mitgliederwahl -> MitgliederWahl(v, zurueck) { meldung = it }
                 is Ansicht.Erfassen -> LaufErfassen(v, a.lauf, { ansicht = Ansicht.Erfassen(it) }, zurueck)
-                is Ansicht.ScanPruefen -> ScanPruefen(v, a.treffer, a.foto, zurueck) { meldung = it }
                 Ansicht.Regeln -> RegelnSeite(v, zurueck)
                 Ansicht.Veranstaltungen -> VeranstaltungenSeite(daten, zurueck)
                 Ansicht.Staffeln -> StaffelSeite(v, zurueck)

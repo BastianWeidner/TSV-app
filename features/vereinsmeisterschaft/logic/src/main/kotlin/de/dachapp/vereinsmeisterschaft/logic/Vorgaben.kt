@@ -57,7 +57,7 @@ object Vorgaben {
         id = id,
         titel = "Vereinsmeisterschaft $jahr",
         jahr = jahr,
-        ort = "Schulschwimmhalle Fischach",
+        ort = "Hallenbad Fischach",
         regeln = regeln(jahr),
     )
 

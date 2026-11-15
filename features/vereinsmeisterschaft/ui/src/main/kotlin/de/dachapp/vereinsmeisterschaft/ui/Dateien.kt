@@ -14,7 +14,7 @@ import androidx.core.content.FileProvider
 import java.io.ByteArrayOutputStream
 import java.io.File
 
-/** Dateien erzeugen, teilen und Fotos annehmen. Kein Netzzugriff. */
+/** Dateien erzeugen, teilen und lesen. Kein Netzzugriff. */
 object Dateien {
 
     fun ordner(context: Context) = File(context.cacheDir, "vereinsmeisterschaft").apply { mkdirs() }
@@ -25,14 +25,6 @@ object Dateien {
     fun dateiname(text: String) = text.replace(Regex("[^A-Za-z0-9ÄÖÜäöüß_-]+"), "_").trim('_').take(60).ifEmpty { "datei" }
 
     fun neueDatei(context: Context, name: String, endung: String) = File(ordner(context), dateiname(name) + "." + endung)
-
-    /** Leere Datei für ein Kamerafoto; die Kamera-App schreibt über die Adresse hinein (ohne Kamera-Berechtigung). */
-    fun fotoZiel(context: Context): Uri {
-        val f = File(ordner(context), "zettel-${System.currentTimeMillis()}.jpg")
-        ordner(context).listFiles { d -> d.name.startsWith("zettel-") }?.forEach { it.delete() }
-        f.createNewFile()
-        return uri(context, f)
-    }
 
     fun teilen(context: Context, datei: File, typ: String, betreff: String) {
         val u = uri(context, datei)
@@ -70,9 +62,13 @@ object Dateien {
         Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
     }.getOrNull()
 
-    fun logo(base64: String?): Bitmap? = base64?.let {
+    /** Eigenes Logo aus den Daten, sonst das Tintenfisch-Logo der Schwimm-App. */
+    fun logo(context: Context, base64: String?): Bitmap? = base64?.let {
         runCatching { Base64.decode(it, Base64.DEFAULT).let { b -> BitmapFactory.decodeByteArray(b, 0, b.size) } }.getOrNull()
-    }
+    } ?: vorgabeLogo(context)
+
+    fun vorgabeLogo(context: Context): Bitmap? =
+        runCatching { BitmapFactory.decodeResource(context.resources, R.drawable.vm_logo_tintenfisch) }.getOrNull()
 
     /** Speicherdatei der Schwimmgruppen in derselben App; null wenn es sie (in dieser Variante) nicht gibt. */
     fun schwimmgruppen(context: Context): String? =

@@ -71,7 +71,7 @@ fun MehrSeite(v: Veranstaltung, daten: Daten, nav: (Ansicht) -> Unit, meldung: (
             if (b64 == null) meldung("Bild nicht lesbar.") else VmStore.setzen { it.copy(logo = b64) }
         }
     }
-    val logo: Bitmap? = remember(daten.logo) { Dateien.logo(daten.logo) }
+    val logo: Bitmap? = remember(daten.logo) { Dateien.logo(context, daten.logo) }
     fun aendern(f: (Veranstaltung) -> Veranstaltung) = VmStore.aendern(f)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Abschnitt("Veranstaltung") {
@@ -81,16 +81,17 @@ fun MehrSeite(v: Veranstaltung, daten: Daten, nav: (Ansicht) -> Unit, meldung: (
             }, leerText = "noch offen")
             Eingabe("Ort", v.ort, { t -> aendern { it.copy(ort = t) } })
             Eingabe("Verein (Kopf der Urkunde)", v.verein, { t -> aendern { it.copy(verein = t) } })
-            Eingabe("Unterschrift (unter der Linie)", v.unterschrift, { t -> aendern { it.copy(unterschrift = t) } })
+            Eingabe("Unterschrift links (unter der Linie)", v.unterschriftLinks, { t -> aendern { it.copy(unterschriftLinks = t) } })
+            Eingabe("Unterschrift rechts (unter der Linie)", v.unterschrift, { t -> aendern { it.copy(unterschrift = t) } })
             Eingabe("Vereinskennzahl (nur DSV-Datei, optional)", v.vereinsnummer, { t -> aendern { it.copy(vereinsnummer = t.filter(Char::isDigit)) } }, typ = KeyboardType.Number)
         }
         Abschnitt("Logo für Urkunden") {
             if (logo != null) Image(logo.asImageBitmap(), "Logo", Modifier.height(80.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { logoWahl.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
-                    Text(if (logo == null) "Logo wählen" else "Anderes Logo")
+                    Text("Anderes Logo")
                 }
-                if (logo != null) TextButton(onClick = { VmStore.setzen { it.copy(logo = null) } }) { Text("Entfernen") }
+                if (daten.logo != null) TextButton(onClick = { VmStore.setzen { it.copy(logo = null) } }) { Text("Schwimm-App-Logo") }
             }
         }
         BigButton("Regeln: Stufen, Pokale, Wertung, Läufe", { nav(Ansicht.Regeln) })

@@ -90,6 +90,40 @@ object Wochenrueckblick {
     /** Ein Spruch je Woche (gleiche Woche, gleicher Spruch). */
     fun spruch(montag: LocalDate): String = SPRUECHE[Math.floorMod(montag.toEpochDay() / 7, SPRUECHE.size.toLong()).toInt()]
 
+    private val SPRUECHE_LANG = listOf(
+        "Zurückschauen lohnt sich: Sieh, wie weit du gekommen bist.",
+        "Beständigkeit über Monate schlägt jede Motivation für einen Tag.",
+        "Jeder eingetragene Tag ist ein Baustein für deinen Fortschritt.",
+        "Fortschritt sieht man nicht im Spiegel von heute, sondern im Rückblick.",
+        "Große Ziele erreicht man in vielen kleinen, langweiligen Wochen.",
+        "Du bist heute stärker als zu Beginn dieses Zeitraums – das zählt.",
+    )
+
+    /** Ein Spruch je Zeitraum; Wochen wie bisher. */
+    fun spruch(z: Zeitraum): String =
+        if (z.art == Rueckblickart.WOCHE) spruch(z.von) else SPRUECHE_LANG[Math.floorMod(z.nummer, SPRUECHE_LANG.size.toLong()).toInt()]
+
+    /** Überschrift; bei längeren Zeiträumen zählen mehr Erfolge für „stark“. */
+    fun ueberschrift(beitraege: List<Wochenbeitrag>, art: Rueckblickart): String {
+        if (art == Rueckblickart.WOCHE) return ueberschrift(beitraege)
+        val n = beitraege.sumOf { it.lob.size }
+        return when {
+            beitraege.isEmpty() -> "Noch nichts eingetragen"
+            n >= 6 -> "Was für ein ${art.titel}! 🔥"
+            n >= 3 -> "Starke Bilanz! 💪"
+            n >= 1 -> "Es geht voran 🌱"
+            else -> "Weiter geht's ✨"
+        }
+    }
+
+    /** Aufgeklappter Text der Benachrichtigung für einen Zeitraum. */
+    fun meldungLangtext(beitraege: List<Wochenbeitrag>, z: Zeitraum): String = buildString {
+        append(meldungText(beitraege))
+        val lob = beitraege.flatMap { it.lob }
+        if (lob.isNotEmpty()) append("\n\n").append(lob.take(8).joinToString("\n"))
+        append("\n\n").append(spruch(z))
+    }
+
     /** Kurzer Text für die Benachrichtigung. */
     fun meldungText(beitraege: List<Wochenbeitrag>): String = beitraege.joinToString(" · ") { it.kurz }
 

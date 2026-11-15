@@ -1,5 +1,5 @@
-// Vereinsmeisterschaft: Oberfläche, Urkunden/Listen als PDF, Zeitzettel-Scan. Ohne Internet, ohne Kamera-Berechtigung
-// (Fotos über die Kamera-App bzw. Galerie). Kennt nur :core:module-api, :core:scanner (Texterkennung) und die eigene Logik.
+// Vereinsmeisterschaft: Oberfläche, Urkunden/Listen/Zeitzettel als PDF, Zeiten-Datei (Excel). Ohne Internet, ohne
+// Berechtigungen. Kennt nur :core:module-api und die eigene Logik.
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
@@ -23,7 +23,6 @@ kotlin {
 
 dependencies {
     implementation(project(":core:module-api"))
-    implementation(project(":core:scanner"))
     implementation(project(":features:vereinsmeisterschaft:logic"))
 
     implementation(libs.androidx.core.ktx)

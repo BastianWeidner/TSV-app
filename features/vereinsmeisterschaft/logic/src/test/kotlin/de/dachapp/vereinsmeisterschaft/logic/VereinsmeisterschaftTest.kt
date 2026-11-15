@@ -258,48 +258,6 @@ class VereinsmeisterschaftTest {
         assertTrue(csv[1].contains("40,00;1;38,00;1;117,00"))
     }
 
-    // ---------- Scan ----------
-
-    @Test
-    fun scanLiestZeilen() {
-        val zeilen = listOf(
-            OcrZeile("Zeitzettel Bahn 2", 100, 20, 600, 60),
-            OcrZeile("L01 B2", 100, 200, 220, 240),
-            OcrZeile("Lena Huber", 260, 200, 500, 240),
-            OcrZeile("4 5 , 3 0", 700, 195, 900, 250, 0.9f),
-            OcrZeile("L02 B2", 100, 300, 220, 340),
-            OcrZeile("Tim Maier", 260, 300, 500, 340),
-            OcrZeile("1:O5,3", 700, 298, 900, 345, 0.8f),
-            OcrZeile("L03 B2", 100, 400, 220, 440),
-            OcrZeile("n.a.", 700, 400, 800, 440),
-            OcrZeile("L04 B2", 100, 500, 220, 540),
-            OcrZeile("Max Muster", 260, 500, 500, 540),
-            OcrZeile("9", 700, 500, 750, 540, 0.3f),
-            OcrZeile("L05 B2", 100, 600, 220, 640),
-        )
-        val t = Scan.auswerten(zeilen, { 2 })
-        assertEquals(5, t.size)
-        assertEquals(4530, t[0].zeit)
-        assertTrue(t[0].sicher)
-        assertEquals(6530, t[1].zeit) // „1:O5,3“ → 1:05,30 (Zehntel erkannt, O als 0)
-        assertEquals(Status.NA, t[2].status)
-        assertNull(t[3].zeit)
-        assertFalse(t[3].sicher)
-        assertNull(t[4].zeit)
-        assertEquals("leer", t[4].grund)
-    }
-
-    @Test
-    fun scanMehrdeutigNimmtMeldezeit() {
-        // „305“: 3,05 s ist für 2 Bahnen unmöglich, 30,50 passt.
-        assertEquals(listOf(3050), Scan.lesarten("305", 2))
-        // „4530“ = 45,30, „45300“ wäre 7:33,00 und zu langsam.
-        assertEquals(listOf(4530), Scan.lesarten("4530", 2))
-        assertNotNull(Scan.kennung("L12 B3"))
-        assertEquals(12 to 3, Scan.kennung("l12 83"))
-        assertNull(Scan.kennung("Lena Huber"))
-    }
-
     // ---------- Datei ----------
 
     @Test
@@ -345,5 +303,45 @@ class VereinsmeisterschaftTest {
         assertTrue(d.contains("PERSONENERGEBNIS:1;1;E;1;1;00:00:45,30;;;;"))
         assertTrue(d.contains(";00:00:00,00;NA;;;"))
         assertEquals("2026-05-16-Fischach-Vereinsmeisterschaft-Pr.DSV8", Querverbindung.dateiname(v))
+    }
+
+    // ---------- Zeiten-Datei ----------
+
+    @Test
+    fun zeitdateiHinUndZurueck() {
+        var v = veranstaltung(Teilnehmer(1, "Lena", "Huber", 2017, Geschlecht.W), Teilnehmer(2, "Tim", "Maier", 2010, Geschlecht.M))
+        v = v.copy(laeufe = Laufeinteilung.einteilen(v))
+        v = mitZeiten(v, Triple(1, Lage.BRUST, 4530))
+        val tab = TabellenLeser.lesen(Zeitdatei.xlsx(v))
+        assertEquals(listOf("Nachname", "Vorname", "Jahrgang", "Stufe", "Brust", "Rücken", "Kraul", "Bemerkung"), tab.kopf)
+        assertEquals(2, tab.zeilen.size) // eine Zeile je Schwimmer, Lagen nebeneinander
+        val lena = tab.zeilen.first { it[0] == "Huber" }
+        assertEquals("45,30", lena[4])
+        assertEquals("", lena[6]) // Kraul schwimmt sie nicht
+        // Zeitzettel-Gruppen: je Stufe, nur die Lagen der Stufe.
+        val g = Zeitdatei.gruppen(v)
+        assertEquals(listOf(listOf(Lage.BRUST, Lage.RUECKEN), listOf(Lage.BRUST, Lage.RUECKEN, Lage.KRAUL)), g.map { x -> x.strecken.map { it.lage } })
+        // Abgetippt: als Datei mit Zeiten (wie aus Excel als CSV gespeichert) wieder einlesen.
+        val csv = Zeitdatei.csv(v).lines().filter { it.isNotBlank() }.mapIndexed { i, z ->
+            if (i == 0) z else {
+                val f = z.split(";").toMutableList()
+                if (f[0] == "Maier") { f[4] = "1:02,5"; f[5] = "58,1"; f[6] = "n.a." } else f[5] = "50,00"
+                f.joinToString(";")
+            }
+        }.joinToString("\n")
+        val b = Import.ergebnisse(v, TabellenLeser.lesen(csv.toByteArray()))
+        assertEquals(4, b.neu)
+        assertEquals(1, b.geaendert) // Lenas Brust stand schon drin
+        assertEquals(6250, b.veranstaltung.ergebnis(2, Lage.BRUST)!!.zeit)
+        assertEquals(5000, b.veranstaltung.ergebnis(1, Lage.RUECKEN)!!.zeit)
+        assertEquals(Status.NA, b.veranstaltung.ergebnis(2, Lage.KRAUL)!!.status)
+        // Excel speichert Zahlen ggf. als „45.3“.
+        assertEquals(4530, Zeit.lesen("45.3"))
+    }
+
+    @Test
+    fun altesOrtWirdHallenbad() {
+        val d = Daten(listOf(veranstaltung().copy(ort = "Schulschwimmhalle Fischach")), 1, null, 2)
+        assertEquals("Hallenbad Fischach", Datei.lesen(Datei.schreiben(d)).veranstaltungen[0].ort)
     }
 }

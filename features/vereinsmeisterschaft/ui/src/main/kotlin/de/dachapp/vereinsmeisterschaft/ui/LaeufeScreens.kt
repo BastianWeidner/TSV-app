@@ -1,9 +1,7 @@
 package de.dachapp.vereinsmeisterschaft.ui
 
-import android.net.Uri
 import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,32 +49,16 @@ import de.dachapp.module.BigButton
 import de.dachapp.module.ConfirmDialog
 import de.dachapp.module.Leer
 import de.dachapp.module.Page
-import de.dachapp.scanner.Texterkennung
 import de.dachapp.vereinsmeisterschaft.logic.Ergebnis
 import de.dachapp.vereinsmeisterschaft.logic.Laufeinteilung
-import de.dachapp.vereinsmeisterschaft.logic.OcrZeile
-import de.dachapp.vereinsmeisterschaft.logic.Scan
 import de.dachapp.vereinsmeisterschaft.logic.Status
 import de.dachapp.vereinsmeisterschaft.logic.Veranstaltung
 import de.dachapp.vereinsmeisterschaft.logic.Zeit
+import de.dachapp.vereinsmeisterschaft.logic.Zeitdatei
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-/** Zeitzettel-Foto lesen: Texterkennung offline, dann Zuordnung über die gedruckten Kennzeichen. */
-suspend fun zettelLesen(context: android.content.Context, v: Veranstaltung, uri: Uri) = withContext(Dispatchers.Default) {
-    val bild = Texterkennung.laden(context, uri)
-    val zeilen = Texterkennung.lesen(bild).map { OcrZeile(it.text, it.links, it.oben, it.rechts, it.unten, it.sicherheit) }
-    Scan.auswerten(
-        zeilen,
-        bahnenVon = { nr -> v.laeufe.firstOrNull { it.nr == nr }?.strecke?.bahnen },
-        erwartet = { nr, bahn ->
-            val l = v.laeufe.firstOrNull { it.nr == nr }
-            l?.auf(bahn)?.let { v.person(it) }?.meldezeiten?.get(l.strecke.lage)
-        },
-    )
-}
 
 @Composable
 fun LaeufeListe(v: Veranstaltung, nav: (Ansicht) -> Unit, meldung: (String) -> Unit) {
@@ -84,26 +66,27 @@ fun LaeufeListe(v: Veranstaltung, nav: (Ansicht) -> Unit, meldung: (String) -> U
     val scope = rememberCoroutineScope()
     var neuFragen by remember { mutableStateOf(false) }
     var arbeitet by remember { mutableStateOf<String?>(null) }
-    var fotoZiel by remember { mutableStateOf<Uri?>(null) }
 
     fun einteilen() = VmStore.aendern { it.copy(laeufe = Laufeinteilung.einteilen(it)) }
 
-    fun lesen(uri: Uri) {
-        arbeitet = "Zettel wird gelesen …"
-        scope.launch {
+    val zeitdatei = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+    ) { uri ->
+        if (uri != null) scope.launch {
             try {
-                val treffer = zettelLesen(context, v, uri)
-                if (treffer.isEmpty()) meldung("Auf dem Foto wurde kein Kennzeichen wie „L03 B2“ gefunden. Bitte den ganzen Zettel gerade und hell fotografieren.")
-                else nav(Ansicht.ScanPruefen(treffer, uri.toString()))
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(Zeitdatei.xlsx(v)) }
+                }
+                meldung(
+                    "Zeiten-Datei gespeichert: eine Zeile je Schwimmer, wie auf dem Zeitzettel. Zeiten in die Lagen-Spalten tippen " +
+                        "(z. B. 45,30 oder 1:05,30, bei Ausfall n. a. oder disq.), " +
+                        "dann unter Ergebnisse › Zeiten importieren wieder einlesen, als Excel oder CSV.",
+                )
             } catch (e: Exception) {
-                meldung("Texterkennung fehlgeschlagen: ${e.message}")
-            } finally {
-                arbeitet = null
+                meldung("Speichern ging nicht: ${e.message}")
             }
         }
     }
-    val kamera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok -> if (ok) fotoZiel?.let(::lesen) }
-    val galerie = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> uri?.let(::lesen) }
 
     fun pdf(name: String, erzeugen: (java.io.File) -> Unit) {
         arbeitet = "PDF wird erstellt …"
@@ -138,8 +121,7 @@ fun LaeufeListe(v: Veranstaltung, nav: (Ansicht) -> Unit, meldung: (String) -> U
                 if (v.laeufe.isNotEmpty()) {
                     OutlinedButton(onClick = { pdf("Laufliste ${v.titel}") { Druck.laufliste(it, v) } }) { Text("Laufliste PDF") }
                     OutlinedButton(onClick = { pdf("Zeitzettel ${v.titel}") { Druck.zeitzettel(it, v) } }) { Text("Zeitzettel PDF") }
-                    OutlinedButton(onClick = { fotoZiel = Dateien.fotoZiel(context); kamera.launch(fotoZiel!!) }) { Text("Zettel fotografieren") }
-                    OutlinedButton(onClick = { galerie.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) { Text("Foto aus Galerie") }
+                    OutlinedButton(onClick = { zeitdatei.launch(Dateien.dateiname("Zeiten ${v.titel}") + ".xlsx") }) { Text("Zeiten-Datei (Excel)") }
                 }
             }
         }

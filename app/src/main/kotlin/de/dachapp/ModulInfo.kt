@@ -38,7 +38,7 @@ object ModulInfos {
         "vereinsmeisterschaft" to ModulInfo(
             Icons.Filled.EmojiEvents, Color(0xFFC62828),
             "Vereinsmeisterschaft auswerten. Teilnehmer aus den Schwimmgruppen oder einer Meldeliste holen, Läufe nach " +
-                "Jahrgang und Meldezeit einteilen, Zeiten eintippen, stoppen oder vom Zeitzettel abfotografieren. Wertung je " +
+                "Jahrgang und Meldezeit einteilen, Zeiten eintippen, stoppen oder per Excel-Datei einlesen. Wertung je " +
                 "Jahrgang und Geschlecht, Pokale nach Zeitpunkten, Urkunden und Ergebnisliste als PDF, Zeiten zurück an die Schwimmgruppen.",
         ),
     )

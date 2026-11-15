@@ -19,7 +19,6 @@ rootProject.name = "tsv-app"
 include(":app")
 include(":core:module-api")
 include(":core:abgleich")
-include(":core:scanner")
 
 include(":features:schwimmkurs:logic")
 include(":features:schwimmkurs:ui")

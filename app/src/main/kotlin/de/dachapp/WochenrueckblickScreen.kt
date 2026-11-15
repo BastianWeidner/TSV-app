@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -40,53 +41,70 @@ import androidx.compose.ui.unit.dp
 import de.dachapp.module.Erinnerungen
 import de.dachapp.module.Header
 import de.dachapp.module.Kennzahl
+import de.dachapp.module.Rueckblickart
 import de.dachapp.module.Schalter
 import de.dachapp.module.SubApp
 import de.dachapp.module.Wochenbeitrag
 import de.dachapp.module.Wochenrueckblick
-import java.time.DayOfWeek
+import de.dachapp.module.Zeitraum
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Rückblick-Seite der Übersicht: eine Woche (Montag bis Sonntag) mit den Beiträgen aller Unter-Apps, blätterbar.
- * Montags startet sie mit der gerade beendeten Woche, sonst mit der laufenden. Unten die Sonntags-Erinnerung.
+ * Rückblick-Seite der Übersicht: Woche, Monat, Quartal, Halbjahr oder Jahr mit den Beiträgen aller Unter-Apps,
+ * blätterbar. Am ersten Tag eines Zeitraums (Woche: Montag) startet sie mit dem gerade beendeten. Unten die
+ * Erinnerungen. [start]: Art, mit der die Seite aufgeht (aus der Benachrichtigung), sonst Woche.
  */
 @Composable
-fun WochenrueckblickScreen(modules: List<SubApp>, onBack: () -> Unit) {
+fun WochenrueckblickScreen(modules: List<SubApp>, onBack: () -> Unit, start: Rueckblickart? = null) {
     BackHandler(onBack = onBack)
     val context = LocalContext.current
     val app = context.applicationContext
     val heute = remember { LocalDate.now() }
-    val diese = remember { Wochenrueckblick.montag(heute) }
-    // 0 = laufende Woche, 1 = Vorwoche …
-    var zurueck by rememberSaveable { mutableIntStateOf(if (heute.dayOfWeek == DayOfWeek.MONDAY) 1 else 0) }
-    val montag = diese.minusWeeks(zurueck.toLong())
+    var artName by rememberSaveable { mutableStateOf((start ?: Rueckblickart.WOCHE).name) }
+    val art = Rueckblickart.valueOf(artName)
+    fun anfang(a: Rueckblickart) = if (Zeitraum.um(a, heute).von == heute) 1 else 0
+    // 0 = laufender Zeitraum, 1 = der davor …
+    var zurueck by rememberSaveable { mutableIntStateOf(anfang(art)) }
+    val z = Zeitraum.um(art, heute).um(-zurueck)
     var beitraege by remember { mutableStateOf<List<Wochenbeitrag>?>(null) }
-    LaunchedEffect(montag) {
+    LaunchedEffect(z) {
         beitraege = null
-        beitraege = withContext(Dispatchers.IO) { WochenWecker.beitraege(app, modules, montag) }
+        beitraege = withContext(Dispatchers.IO) { WochenWecker.beitraege(app, modules, z) }
     }
 
     Column(Modifier.fillMaxWidth()) {
-        Header("Wochenrückblick", onBack)
+        Header("Rückblick", onBack)
         Column(
             Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Rueckblickart.entries.forEach { a ->
+                    FilterChip(
+                        selected = a == art,
+                        onClick = { if (a != art) { artName = a.name; zurueck = anfang(a) } },
+                        label = { Text(a.titel) },
+                    )
+                }
+            }
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { zurueck++ }, enabled = zurueck < 104, modifier = Modifier.semantics { contentDescription = "Woche davor" }) {
+                TextButton(onClick = { zurueck++ }, enabled = zurueck < 520, modifier = Modifier.semantics { contentDescription = "${art.titel} davor" }) {
                     Text("‹", style = MaterialTheme.typography.headlineSmall)
                 }
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        when (zurueck) { 0 -> "Diese Woche"; 1 -> "Letzte Woche"; else -> "Vor $zurueck Wochen" },
+                        when (zurueck) {
+                            0 -> art.diese.replaceFirstChar { it.uppercase() }
+                            1 -> art.vorKurz
+                            else -> "Vor $zurueck ${MEHRZAHL[art]}"
+                        },
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    Text(Wochenrueckblick.titel(montag), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(z.titel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                TextButton(onClick = { zurueck-- }, enabled = zurueck > 0, modifier = Modifier.semantics { contentDescription = "Woche danach" }) {
+                TextButton(onClick = { zurueck-- }, enabled = zurueck > 0, modifier = Modifier.semantics { contentDescription = "${art.titel} danach" }) {
                     Text("›", style = MaterialTheme.typography.headlineSmall)
                 }
             }
@@ -95,13 +113,13 @@ fun WochenrueckblickScreen(modules: List<SubApp>, onBack: () -> Unit) {
             when {
                 b == null -> Row(Modifier.fillMaxWidth().padding(32.dp), horizontalArrangement = Arrangement.Center) { CircularProgressIndicator() }
                 b.isEmpty() -> Text(
-                    "In dieser Woche ist noch nichts eingetragen. Trainings, Essen und Supplements erscheinen hier, sobald du sie erfasst.",
+                    "In diesem Zeitraum ist noch nichts eingetragen. Trainings, Essen und Supplements erscheinen hier, sobald du sie erfasst.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 16.dp),
                 )
                 else -> {
-                    Kopf(b, montag)
+                    Kopf(b, z)
                     b.forEach { Abschnitt(it) }
                 }
             }
@@ -111,17 +129,23 @@ fun WochenrueckblickScreen(modules: List<SubApp>, onBack: () -> Unit) {
     }
 }
 
+/** „Vor 3 Wochen“, „Vor 3 Monaten“ … (Dativ Mehrzahl). */
+private val MEHRZAHL = mapOf(
+    Rueckblickart.WOCHE to "Wochen", Rueckblickart.MONAT to "Monaten", Rueckblickart.QUARTAL to "Quartalen",
+    Rueckblickart.HALBJAHR to "Halbjahren", Rueckblickart.JAHR to "Jahren",
+)
+
 @Composable
-private fun Kopf(b: List<Wochenbeitrag>, montag: LocalDate) {
+private fun Kopf(b: List<Wochenbeitrag>, z: Zeitraum) {
     Card(
         Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer),
     ) {
         Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(Wochenrueckblick.ueberschrift(b), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+            Text(Wochenrueckblick.ueberschrift(b, z.art), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
             val n = b.sumOf { it.lob.size }
-            if (n > 0) Text(if (n == 1) "1 Erfolg diese Woche" else "$n Erfolge diese Woche", style = MaterialTheme.typography.titleSmall)
-            Text("„${Wochenrueckblick.spruch(montag)}“", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+            if (n > 0) Text(if (n == 1) "1 Erfolg ${z.art.diese}" else "$n Erfolge ${z.art.diese}", style = MaterialTheme.typography.titleSmall)
+            Text("„${Wochenrueckblick.spruch(z)}“", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
         }
     }
 }
@@ -169,24 +193,29 @@ private fun Zahl(k: Kennzahl) {
 private fun ErinnerungKarte() {
     val context = LocalContext.current
     val app = context.applicationContext
-    var an by remember { mutableStateOf(WochenWecker.an(app)) }
+    var arten by remember { mutableStateOf(WochenWecker.arten(app)) }
     var stunde by remember { mutableIntStateOf(WochenWecker.stunde(app)) }
     var erlaubt by remember { mutableStateOf(Erinnerungen.erlaubt(app)) }
     val frage = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { erlaubt = Erinnerungen.erlaubt(app) }
-    fun speichern() = WochenWecker.einstellen(app, an, stunde)
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("🔔  Sonntags erinnern", style = MaterialTheme.typography.titleMedium)
-            Schalter(
-                "Wochenrückblick als Benachrichtigung", an,
-                { an = it; speichern(); if (it && !erlaubt && Build.VERSION.SDK_INT >= 33) frage.launch(Manifest.permission.POST_NOTIFICATIONS) },
-                hilfe = "Jeden Sonntag eine kurze Zusammenfassung deiner Woche. Alles bleibt auf dem Handy.",
+            Text("🔔  Erinnern", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Am letzten Tag des Zeitraums eine kurze Zusammenfassung (Woche: sonntags). Fallen mehrere auf einen Tag, kommt nur der größte. Alles bleibt auf dem Handy.",
+                style = MaterialTheme.typography.bodySmall,
             )
-            if (an) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Rueckblickart.entries.forEach { a ->
+                Schalter(a.rueckblick, a in arten, { an ->
+                    WochenWecker.einstellen(app, a, an)
+                    arten = WochenWecker.arten(app)
+                    if (an && !erlaubt && Build.VERSION.SDK_INT >= 33) frage.launch(Manifest.permission.POST_NOTIFICATIONS)
+                })
+            }
+            if (arten.isNotEmpty()) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     WochenWecker.STUNDEN.forEach { h ->
-                        FilterChip(selected = stunde == h, onClick = { stunde = h; speichern() }, label = { Text("$h Uhr") })
+                        FilterChip(selected = stunde == h, onClick = { stunde = h; WochenWecker.stundeSetzen(app, h) }, label = { Text("$h Uhr") })
                     }
                 }
                 if (!erlaubt) {
