@@ -20,8 +20,8 @@ android {
         applicationId = "de.dachapp"
         minSdk = 29
         targetSdk = 35
-        versionCode = 53
-        versionName = "1.26.0"
+        versionCode = 54
+        versionName = "1.26.1"
     }
 
     // Einzige Variante "schwimmen" (App-ID de.dachapp.schwimmen): Schwimmkurs, Schwimmgruppen, Schwimmleitung.
