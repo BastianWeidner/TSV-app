@@ -19,6 +19,9 @@ import kotlin.math.sin
  */
 object Farbschema {
 
+    /** Farbton (LCh) der dunklen Flächen, ergibt Hintergrund etwa #09151E, Karten etwa #16212A. */
+    private const val DUNKELBLAU = 260f
+
     /** Farbe mit Farbton und Sättigung von [grund], aber der Helligkeit [ton] (0..100). */
     fun ton(grund: Color, ton: Float, saettigung: Float? = null): Color {
         val (_, c, h) = lch(grund)
@@ -33,8 +36,9 @@ object Farbschema {
         val p = Leiter(max(c, 24f), h)
         val s = Leiter((c / 3f).coerceIn(12f, 24f), h)
         val t = Leiter((c / 2f).coerceIn(16f, 36f), (h + 60f) % 360f)
-        val n = Leiter(5f, h)
-        val nv = Leiter(10f, h)
+        // Dunkelmodus (Wunsch Bastian 2026-11-17): Flächen dunkelblau statt grau getönt, in allen Unter-Apps gleich.
+        val n = if (dunkel) Leiter(8f, DUNKELBLAU) else Leiter(5f, h)
+        val nv = if (dunkel) Leiter(12f, DUNKELBLAU) else Leiter(10f, h)
 
         return if (!dunkel) {
             lightColorScheme(

@@ -187,6 +187,11 @@ private fun gruss(): String = when (LocalTime.now().hour) {
     else -> "Gute Nacht"
 }
 
+/** versionName aus dem installierten Paket (gilt so für alle Varianten, ohne BuildConfig). */
+private fun appVersion(context: android.content.Context): String? = runCatching {
+    context.packageManager.getPackageInfo(context.packageName, 0).versionName
+}.getOrNull()
+
 @Composable
 private fun Overview(
     modules: List<SubApp>, onOpen: (SubApp) -> Unit, onSicherung: () -> Unit, onProfil: (() -> Unit)? = null, onWoche: ((de.dachapp.module.Rueckblickart?) -> Unit)? = null,
@@ -279,6 +284,26 @@ private fun Overview(
                         "Alle Module sind ausgeblendet. Über das Zahnrad oben rechts lassen sie sich wieder einblenden.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            // Fußzeile (Wunsch Bastian 2026-11-17): Bastians Logo, installierte Version und „by BW“, dezent.
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    androidx.compose.foundation.Image(
+                        androidx.compose.ui.res.painterResource(R.drawable.logo_bw),
+                        contentDescription = "Logo Bastian Weidner",
+                        modifier = Modifier.size(36.dp),
+                    )
+                    Text(
+                        listOfNotNull(appVersion(context)?.let { "Version $it" }, "by BW").joinToString(" · "),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 8.dp),
                     )
                 }
             }
