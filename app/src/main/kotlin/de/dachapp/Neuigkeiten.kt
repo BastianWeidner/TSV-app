@@ -39,6 +39,16 @@ object Neuigkeiten {
 
     val LISTE: List<Version> = listOf(
         Version(
+            57, "1.27.2",
+            listOf(
+                Punkt(
+                    "Motorsägen-Import führt jetzt zusammen: Tabelle exportieren, ergänzen, wieder importieren. " +
+                        "Vorhandenes wird aktualisiert statt doppelt angelegt, leere Zellen lassen den bisherigen Wert stehen.",
+                    module = setOf("motorsaegen"),
+                ),
+            ),
+        ),
+        Version(
             56, "1.27.1",
             listOf(
                 Punkt(
