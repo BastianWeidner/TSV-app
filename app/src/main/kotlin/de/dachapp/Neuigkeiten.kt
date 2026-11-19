@@ -39,6 +39,16 @@ object Neuigkeiten {
 
     val LISTE: List<Version> = listOf(
         Version(
+            56, "1.27.1",
+            listOf(
+                Punkt(
+                    "Motorsägen: Sägen, Schwerter, Ketten, Ersatzteile und mehr lassen sich jetzt als CSV oder Excel-Datei exportieren und einlesen (Import ergänzt nur). " +
+                        "Dazu gibt es einen Katalog des ganzen Bestands als PDF, Ketten und Schwerter kannst du duplizieren, und im Lager merkt sich die Soon™-Box, was du dir noch besorgen willst.",
+                    module = setOf("motorsaegen"),
+                ),
+            ),
+        ),
+        Version(
             55, "1.27.0",
             listOf(
                 Punkt("Neu: „Was ist neu“. Nach einem Update siehst du hier einmal, was sich geändert hat. Später findest du es unten in der Übersicht."),
