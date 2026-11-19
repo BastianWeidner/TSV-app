@@ -19,6 +19,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Updates aus dem Drive-Ordner: täglicher Blick und Rückmeldung der Installation (Aktualisierung.kt). -->
+        <receiver
+            android:name=".AktualisierungEmpfaenger"
+            android:exported="false" />
         <receiver
             android:name=".HeuteWidget"
             android:exported="false"

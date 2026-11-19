@@ -201,6 +201,19 @@ private fun Overview(
     var ausgeblendet by remember { mutableStateOf(speicher.laden()) }
     var einstellungen by rememberSaveable { mutableStateOf(false) }
     var infoId by rememberSaveable { mutableStateOf<String?>(null) }
+    var feedback by rememberSaveable { mutableStateOf(false) }
+    // „Was ist neu“ (Wunsch Bastian 2026-11-19): nach einem Update einmal zeigen, siehe Neuigkeiten.kt.
+    var neuigkeiten by remember { mutableStateOf<List<de.dachapp.module.WasIstNeu.Version>?>(null) }
+    var neuNachUpdate by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        val r = withContext(Dispatchers.IO) { Neuigkeiten.beimStart(context.applicationContext, modules) }
+        if (r.isNotEmpty()) { neuNachUpdate = true; neuigkeiten = r }
+    }
+    // Updates aus dem Drive-Ordner (Wunsch Bastian 2026-11-19), siehe Aktualisierung.kt.
+    var update by remember { mutableStateOf<Aktualisierung.Fund?>(null) }
+    var updateDialog by rememberSaveable { mutableStateOf(false) }
+    var updateMeldung by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) { update = withContext(Dispatchers.IO) { Aktualisierung.beimStart(context.applicationContext) } }
     val sichtbar = modules.filter { it.id !in ausgeblendet }
     var heute by remember { mutableStateOf<List<Pair<SubApp, String>>>(emptyList()) }
     // Heute-Zeile: jede Unter-App darf einen kurzen Hinweis liefern; jede Minute neu.
@@ -248,6 +261,14 @@ private fun Overview(
                     }
                     FilledTonalIconButton(onClick = { einstellungen = true }) {
                         Icon(Icons.Outlined.Settings, contentDescription = "Module ein- und ausblenden")
+                    }
+                }
+            }
+            update?.let { f ->
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Column {
+                        UpdateHinweis(f) { updateMeldung = Aktualisierung.installieren(context, f) }
+                        updateMeldung?.let { Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp)) }
                     }
                 }
             }
@@ -307,7 +328,30 @@ private fun Overview(
                     )
                 }
             }
+            // Freiwilliges Feedback (Wunsch Bastian 2026-11-19): öffnet nur eine vorbereitete Mail, siehe Feedback.kt.
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    WasIstNeuKnopf(onClick = { neuNachUpdate = false; neuigkeiten = Neuigkeiten.alle(context, modules) })
+                    FeedbackKnopf(onClick = { feedback = true })
+                }
+            }
         }
+    }
+
+    if (updateDialog) {
+        UpdateDialog(onFund = { update = it; updateMeldung = null }, onSchliessen = { updateDialog = false })
+    }
+
+    neuigkeiten?.let { liste ->
+        WasIstNeuDialog(liste, neuNachUpdate) {
+            if (neuNachUpdate) Neuigkeiten.gesehen(context.applicationContext)
+            neuigkeiten = null
+            neuNachUpdate = false
+        }
+    }
+
+    if (feedback) {
+        FeedbackDialog(stringResource(R.string.app_name), appVersion(context), sichtbar) { feedback = false }
     }
 
     modules.firstOrNull { it.id == infoId }?.let { module ->
@@ -364,6 +408,7 @@ private fun Overview(
                 }
             },
             confirmButton = { TextButton(onClick = { einstellungen = false }) { Text("Fertig") } },
+            dismissButton = { TextButton(onClick = { einstellungen = false; updateDialog = true }) { Text("Updates") } },
         )
     }
 }

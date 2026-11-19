@@ -35,7 +35,7 @@ internal fun istRueckblick(id: String?) = id == WOCHE || id?.startsWith("$WOCHE/
  */
 object WochenWecker {
     /** Unter-Apps, die zum Rückblick beitragen; nur mit einer davon gibt es Seite und Wecker. */
-    val QUELLEN = setOf("tracker", "krafttraining", "brennholz")
+    val QUELLEN = setOf("tracker", "krafttraining", "brennholz", "motorsaegen")
 
     private const val KANAL = "dach_wochenrueckblick"
     private const val NR = 76_001
@@ -137,5 +137,6 @@ class WochenNeustart : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED && intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
         WochenWecker.planen(context)
+        Aktualisierung.planen(context)
     }
 }

@@ -58,6 +58,7 @@ object Sicherungsgruppen {
         "nachlegen.json" to "brennholz",
         "camper.json" to "camper", "camper-fotos" to "camper",
         "wartung.json" to "wartung", "wartung-belege" to "wartung",
+        "motorsaegen.json" to "motorsaegen", "motorsaegen-fotos" to "motorsaegen",
         "karten.json" to "karten",
         "rezepte.json" to "rezepte", "rezepte-fotos" to "rezepte",
         "preise.json" to "preise", "preise-zettel" to "preise",

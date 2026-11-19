@@ -20,6 +20,8 @@ class MainActivity : ComponentActivity() {
         de.dachapp.module.Gesamtsicherung.planen(applicationContext)
         // Sonntags-Wecker des Wochenrückblicks (nur „alle“ und „gym“; „schwimmen“ hat keine Quelle und plant nichts).
         WochenWecker.planen(applicationContext)
+        // Täglicher Blick in den Update-Ordner (nur wenn einer gewählt ist), siehe Aktualisierung.kt.
+        Aktualisierung.planen(applicationContext)
         if (savedInstanceState == null) uebernehmen(intent)
         setContent {
             DachTheme(VariantenInfos.grundfarbe) {
