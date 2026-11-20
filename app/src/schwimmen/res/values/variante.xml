@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Name der Variante: Anfang der APK-Dateinamen im Update-Ordner (schwimmen-x.y.z.apk) und Filter für „Was ist neu“.
+     Nötig, weil „ela“ dieselbe App-ID wie „gym“ hat und sich am Paketnamen nicht unterscheiden lässt. -->
+<resources>
+    <string name="variante" translatable="false">schwimmen</string>
+</resources>

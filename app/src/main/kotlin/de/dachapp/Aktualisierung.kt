@@ -76,14 +76,21 @@ object Aktualisierung {
      * Braucht keine Internet-Berechtigung, das Öffnen übernimmt die Drive-App bzw. der Browser. Je Variante:
      * bisher nur „gym“ (Bastians Ordner „Gym Updates“, per Link freigegeben).
      */
-    fun ordnerLink(c: Context): String = when (UpdateVersion.praefix(c.packageName)) {
-        "gym" -> "https://drive.google.com/drive/folders/1DXZHvHMxW5RoUeBqiF14tQVeUOBZXqeN"
+    fun ordnerLink(c: Context): String = when (variante(c)) {
+        // „ela“ nutzt denselben Ordner, sucht dort aber nur ela-….apk.
+        "gym", "ela" -> "https://drive.google.com/drive/folders/1DXZHvHMxW5RoUeBqiF14tQVeUOBZXqeN"
         else -> ""
     }
 
     fun linkOeffnen(c: Context): Boolean = ordnerLink(c).isNotBlank() && runCatching {
         c.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(ordnerLink(c))).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); true
     }.getOrDefault(false)
+
+    /**
+     * Variante aus res/values/variante.xml je Flavor („dach-app“, „schwimmen“, „gym“, „ela“). Nicht mehr aus dem
+     * Paketnamen, weil „ela“ (seit 1.28.0) die App-ID von „gym“ teilt, damit sie über die Gym-App installiert werden kann.
+     */
+    fun variante(c: Context): String = c.getString(R.string.variante)
 
     /** Gefundene neuere APK der eigenen Variante. */
     data class Fund(val name: String, val version: String, val uri: Uri)
@@ -136,7 +143,7 @@ object Aktualisierung {
         c.contentResolver.query(
             kinder, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null,
         )?.use { cur -> while (cur.moveToNext()) dateien += cur.getString(0) to (cur.getString(1) ?: "") }
-        val (d, v) = UpdateVersion.neueste(dateien, { it.second }, UpdateVersion.praefix(c.packageName), installiert(c)) ?: return null
+        val (d, v) = UpdateVersion.neueste(dateien, { it.second }, variante(c), installiert(c)) ?: return null
         return Fund(d.second, UpdateVersion.text(v), DocumentsContract.buildDocumentUriUsingTree(tree, d.first))
     }
 

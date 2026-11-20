@@ -19,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import de.dachapp.module.SubApp
-import de.dachapp.module.UpdateVersion
 import de.dachapp.module.WasIstNeu
 import de.dachapp.module.WasIstNeu.Punkt
 import de.dachapp.module.WasIstNeu.Version
@@ -30,7 +29,8 @@ import de.dachapp.module.WasIstNeu.Version
  * in den SharedPreferences, keine Berechtigung, kein Netz. Logik und Filter siehe core/module-api WasIstNeu.kt.
  *
  * Neue Version eintragen: oben in [LISTE] einen Eintrag mit dem neuen versionCode aus app/build.gradle.kts.
- * Punkte, die nur eine Variante betreffen, bekommen `varianten = setOf("dach-app" | "schwimmen" | "gym")`,
+ * Punkte, die nur eine Variante betreffen, bekommen `varianten = setOf("dach-app" | "schwimmen" | "gym" | "ela")`
+ * (Gym-Punkte meist auch für „ela“, die Ela-Variante hat alle Gym-Module plus Wartung),
  * Punkte einer Unter-App `module = setOf("<id>")`, dann sieht die Gym-App z. B. keine Café-Punkte.
  * Kurz und in Alltagssprache schreiben, die Leser sind Tester und Freunde.
  */
@@ -38,6 +38,51 @@ object Neuigkeiten {
     private const val DACH = "dach-app"
 
     val LISTE: List<Version> = listOf(
+        Version(
+            59, "1.29.0",
+            listOf(
+                Punkt(
+                    "Krafttraining: Wenn du im Training eine Übung öffnest oder hinzufügst und zurückgehst, " +
+                        "bleibst du an derselben Stelle in der Liste, statt wieder ganz oben zu landen.",
+                    module = setOf("krafttraining"),
+                ),
+                Punkt(
+                    "Food & Boost: Tipp auf einen Nährwert (Kalorien, Eiweiß, Kohlenhydrate, Fett, Vitamine und mehr) zeigt, " +
+                        "woher er kommt: jede Mahlzeit und jedes Produkt des Tages mit Menge und Anteil in Prozent, die größte Quelle zuerst.",
+                    module = setOf("tracker"),
+                ),
+                Punkt(
+                    "Krafttraining: Während ein Training läuft, bleibt der Bildschirm an. Und wenn du aus Versehen eine Übung " +
+                        "oder einen Satz entfernst, holt „Rückgängig“ ihn ein paar Sekunden lang zurück.",
+                    module = setOf("krafttraining"),
+                ),
+                Punkt(
+                    "Krafttraining: Bei Langhantel-Übungen zeigt „🏋 Scheiben“, welche Scheiben auf jede Seite gehören, " +
+                        "mit wählbarer Stange (20, 15 oder 10 kg).",
+                    module = setOf("krafttraining"),
+                ),
+                Punkt(
+                    "Food & Boost: Uhrzeit eines Eintrags direkt wählen, „Nochmal“ trägt einen Eintrag jetzt noch einmal ein, " +
+                        "deine ★-Favoriten stehen als Schnellknöpfe im Essen-Tab, und 📅 springt im Kalender zu jedem Tag.",
+                    module = setOf("tracker"),
+                ),
+                Punkt(
+                    "Motorsägen und Wartung: Suchfeld, sobald die Liste länger wird.",
+                    module = setOf("motorsaegen", "wartung"),
+                ),
+            ),
+        ),
+        Version(
+            58, "1.28.0",
+            listOf(
+                Punkt(
+                    "Neu für dich: Wartung & Fristen. Trag wiederkehrende Termine ein (Schornsteinfeger, Rauchmelder, " +
+                        "Reifenwechsel, TÜV und mehr). Die App rechnet aus, wann es wieder fällig ist, erinnert rechtzeitig " +
+                        "und merkt sich Kosten und Beleg-Fotos. Deine bisherigen Gym-Daten sind alle noch da.",
+                    varianten = setOf("ela"),
+                ),
+            ),
+        ),
         Version(
             57, "1.27.2",
             listOf(
@@ -99,7 +144,7 @@ object Neuigkeiten {
 
     private fun paket(c: Context) = runCatching { c.packageManager.getPackageInfo(c.packageName, 0) }.getOrNull()
 
-    fun variante(c: Context) = UpdateVersion.praefix(c.packageName)
+    fun variante(c: Context) = Aktualisierung.variante(c)
 
     /** Alle Einträge dieser Variante (für „Was ist neu“ in der Übersicht), neueste zuerst. */
     fun alle(c: Context, module: List<SubApp>): List<Version> =
