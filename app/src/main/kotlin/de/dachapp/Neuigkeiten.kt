@@ -39,6 +39,22 @@ object Neuigkeiten {
 
     val LISTE: List<Version> = listOf(
         Version(
+            60, "1.30.0",
+            listOf(
+                Punkt(
+                    "Brennholz, Feuer: Reagierst du nicht auf die Nachlegen-Erinnerung, kommt nach 5 Minuten eine zweite. " +
+                        "Kommt dann 10 Minuten lang wieder nichts, gilt das Feuer als aus und die Erinnerungen hören auf. " +
+                        "Brennt es doch noch, setzt „Brennt noch“ es fort. Abschalten kannst du das unter „Zeiten“.",
+                    module = setOf("brennholz"),
+                ),
+                Punkt(
+                    "Brennholz, Feuer: Neues Nachlegeprotokoll unten im Reiter. Es zeigt nach Tagen, wann angezündet, " +
+                        "nachgelegt (mit Scheiten oder Litern), erinnert und gelöscht wurde.",
+                    module = setOf("brennholz"),
+                ),
+            ),
+        ),
+        Version(
             59, "1.29.0",
             listOf(
                 Punkt(
